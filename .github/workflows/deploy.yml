@@ -3,6 +3,9 @@ name: Build and Deploy to Elastic Beanstalk
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "eb-java-app/**"          # this repo holds multiple labs; only build on changes here
+      - ".github/workflows/deploy.yml"
   workflow_dispatch: {}
 
 # Only one deployment in flight at a time; a newer push supersedes an
@@ -21,6 +24,10 @@ env:
   EB_APPLICATION_NAME: ${{ vars.EB_APPLICATION_NAME }}
   EB_ENVIRONMENT_NAME: ${{ vars.EB_ENVIRONMENT_NAME }}
 
+defaults:
+  run:
+    working-directory: eb-java-app   # all "run" steps execute inside the subfolder
+
 jobs:
   build-and-deploy:
     name: Build, package and deploy
@@ -37,6 +44,7 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+          cache-dependency-path: eb-java-app/pom.xml
 
       - name: Run tests and build jar
         run: mvn -B clean package
