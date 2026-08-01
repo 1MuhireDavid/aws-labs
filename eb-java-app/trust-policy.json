@@ -6,7 +6,7 @@
     "Action": "sts:AssumeRoleWithWebIdentity",
     "Condition": {
       "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
-      "StringLike": { "token.actions.githubusercontent.com:sub": "repo:1MuhireDavid/aws-labs/tree/main/eb-java-app:ref:refs/heads/main" }
+      "StringLike": { "token.actions.githubusercontent.com:sub": "repo:1MuhireDavid/aws-labs:ref:refs/heads/main" }
     }
   }]
 }
