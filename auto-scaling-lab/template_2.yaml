@@ -465,3 +465,4 @@ Outputs:
   PrivateSubnets:
     Description: Private subnet IDs hosting the EC2 instances
     Value: !Join [", ", [!Ref PrivateSubnet1, !Ref PrivateSubnet2]]
+
