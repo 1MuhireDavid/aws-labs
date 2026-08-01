@@ -1,0 +1,100 @@
+name: Build and Deploy to Elastic Beanstalk
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+# Only one deployment in flight at a time; a newer push supersedes an
+# in-progress one instead of racing it.
+concurrency:
+  group: eb-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # required for OIDC -> AWS role assumption (no static keys)
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  S3_BUCKET: ${{ vars.EB_SOURCE_BUCKET }}
+  EB_APPLICATION_NAME: ${{ vars.EB_APPLICATION_NAME }}
+  EB_ENVIRONMENT_NAME: ${{ vars.EB_ENVIRONMENT_NAME }}
+
+jobs:
+  build-and-deploy:
+    name: Build, package and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run tests and build jar
+        run: mvn -B clean package
+
+      - name: Compute build metadata
+        id: meta
+        run: |
+          echo "commit_sha=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "version_label=v${{ github.run_number }}-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble Elastic Beanstalk source bundle
+        run: |
+          mkdir -p deploy
+          cp target/application.jar deploy/application.jar
+          cp Procfile deploy/Procfile
+          cp -r .ebextensions deploy/.ebextensions
+          cd deploy
+          zip -r ../${{ steps.meta.outputs.version_label }}.zip .
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload source bundle to S3
+        run: |
+          aws s3 cp "${{ steps.meta.outputs.version_label }}.zip" \
+            "s3://${S3_BUCKET}/${EB_APPLICATION_NAME}/${{ steps.meta.outputs.version_label }}.zip"
+
+      - name: Create new Elastic Beanstalk application version
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name "${EB_APPLICATION_NAME}" \
+            --version-label "${{ steps.meta.outputs.version_label }}" \
+            --description "Commit ${{ steps.meta.outputs.commit_sha }} built at ${{ steps.meta.outputs.build_time }}" \
+            --source-bundle S3Bucket="${S3_BUCKET}",S3Key="${EB_APPLICATION_NAME}/${{ steps.meta.outputs.version_label }}.zip" \
+            --auto-create-application
+
+      - name: Deploy new version to the environment
+        run: |
+          aws elasticbeanstalk update-environment \
+            --environment-name "${EB_ENVIRONMENT_NAME}" \
+            --version-label "${{ steps.meta.outputs.version_label }}" \
+            --option-settings \
+              Namespace=aws:elasticbeanstalk:application:environment,OptionName=APP_COMMIT,Value="${{ steps.meta.outputs.commit_sha }}" \
+              Namespace=aws:elasticbeanstalk:application:environment,OptionName=APP_BUILD_TIME,Value="${{ steps.meta.outputs.build_time }}"
+
+      - name: Wait for environment to finish updating
+        run: |
+          aws elasticbeanstalk wait environment-updated \
+            --environment-names "${EB_ENVIRONMENT_NAME}"
+
+      - name: Smoke-test the deployed environment
+        run: |
+          EB_URL=$(aws elasticbeanstalk describe-environments \
+            --environment-names "${EB_ENVIRONMENT_NAME}" \
+            --query "Environments[0].CNAME" --output text)
+          echo "Testing http://${EB_URL}/version"
+          curl -sf "http://${EB_URL}/version"
