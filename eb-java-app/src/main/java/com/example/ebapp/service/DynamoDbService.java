@@ -1,6 +1,7 @@
 package com.example.ebapp.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
@@ -29,7 +30,7 @@ public class DynamoDbService {
     @Value("${app.dynamodb.table-name}")
     private String tableName;
 
-    public DynamoDbService(DynamoDbClient dynamoDbClient) {
+    public DynamoDbService(@Lazy DynamoDbClient dynamoDbClient) {
         this.dynamoDbClient = dynamoDbClient;
     }
 
