@@ -2,17 +2,53 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "SourceBundleBucketAccess",
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject"],
       "Resource": "arn:aws:s3:::eb-java-app-source-047719661196/*"
     },
     {
+      "Sid": "ElasticBeanstalkStorageBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:GetBucketLocation",
+        "s3:GetBucketPolicy",
+        "s3:PutBucketPolicy",
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::elasticbeanstalk-eu-north-1-047719661196"
+    },
+    {
+      "Sid": "ElasticBeanstalkStorageObjects",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::elasticbeanstalk-eu-north-1-047719661196/*"
+    },
+    {
+      "Sid": "ElasticBeanstalkDeploy",
       "Effect": "Allow",
       "Action": [
         "elasticbeanstalk:CreateApplicationVersion",
         "elasticbeanstalk:UpdateEnvironment",
         "elasticbeanstalk:DescribeEnvironments",
-        "elasticbeanstalk:DescribeApplicationVersions"
+        "elasticbeanstalk:DescribeApplicationVersions",
+        "elasticbeanstalk:DescribeEvents",
+        "elasticbeanstalk:DescribeConfigurationSettings"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ElasticBeanstalkSupportingServices",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:DescribeScalingActivities",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:GetTemplate",
+        "ec2:DescribeInstances",
+        "elasticloadbalancing:DescribeLoadBalancers"
       ],
       "Resource": "*"
     }
