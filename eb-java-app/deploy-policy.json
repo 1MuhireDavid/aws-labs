@@ -39,16 +39,26 @@
       "Resource": "*"
     },
     {
-      "Sid": "ElasticBeanstalkSupportingServices",
+      "Sid": "ElasticBeanstalkSupportingReads",
       "Effect": "Allow",
       "Action": [
         "autoscaling:DescribeAutoScalingGroups",
         "autoscaling:DescribeScalingActivities",
+        "autoscaling:DescribeLaunchConfigurations",
         "cloudformation:DescribeStacks",
         "cloudformation:DescribeStackResources",
         "cloudformation:GetTemplate",
+        "ec2:DescribeImages",
         "ec2:DescribeInstances",
-        "elasticloadbalancing:DescribeLoadBalancers"
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeKeyPairs",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeAccountAttributes",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:DescribeTargetHealth"
       ],
       "Resource": "*"
     }
