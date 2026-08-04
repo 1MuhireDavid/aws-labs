@@ -1,0 +1,3 @@
+template-file-path: Securely Deploying Resources in a VPC Using CloudFormation/vpc-ha-secure.yaml
+parameters: {}
+tags: {}
