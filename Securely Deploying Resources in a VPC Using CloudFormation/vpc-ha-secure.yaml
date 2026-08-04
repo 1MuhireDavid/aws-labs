@@ -11,7 +11,7 @@ Parameters:
   FullName:
     Type: String
     Description: Your full name, shown on the public web pages.
-    Default: "Your Full Name"
+    Default: "MUHIRE DAVID"
 
   LabName:
     Type: String
