@@ -253,16 +253,6 @@ Resources:
           ToPort: 80
           CidrIp: 0.0.0.0/0
           Description: HTTP from anywhere
-        - IpProtocol: icmp
-          FromPort: -1
-          ToPort: -1
-          CidrIp: !Ref VpcCidr
-          Description: Ping from within the VPC (validation only)
-        - IpProtocol: icmp
-          FromPort: -1
-          ToPort: -1
-          CidrIp: 102.22.146.226/32
-          Description: Ping from my laptop
       SecurityGroupEgress:
         - IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
