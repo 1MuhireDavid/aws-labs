@@ -310,6 +310,7 @@ cat > deploy-policy.json << 'JSON'
         "cloudformation:GetTemplate",
         "ec2:DescribeImages",
         "ec2:DescribeInstances",
+        "ec2:DescribeLaunchTemplates",
         "ec2:DescribeSecurityGroups",
         "ec2:DescribeSubnets",
         "ec2:DescribeVpcs",
@@ -321,6 +322,12 @@ cat > deploy-policy.json << 'JSON'
         "elasticloadbalancing:DescribeTargetHealth"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "ElasticBeanstalkStackUpdate",
+      "Effect": "Allow",
+      "Action": ["cloudformation:UpdateStack"],
+      "Resource": "arn:aws:cloudformation:eu-north-1:047719661196:stack/awseb-*/*"
     }
   ]
 }
