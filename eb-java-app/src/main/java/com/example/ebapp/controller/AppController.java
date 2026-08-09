@@ -39,7 +39,7 @@ public class AppController {
     @GetMapping("/")
     public Map<String, Object> home() {
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put("message", "Deployment successful! This Java application is running on AWS Elastic Beanstalk.");
+        response.put("message", "Deployment successful! This Java application is running on AWS Elastic Beanstalk!!!!");
         response.put("version", appVersion);
         response.put("commit", commitSha);
         response.put("timestamp", Instant.now().toString());
