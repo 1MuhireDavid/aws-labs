@@ -257,86 +257,28 @@ aws iam create-role \
   --profile admin
 ```
 
-Attach a least-privilege permissions policy: scoped S3 access to the two
-buckets used, EB deploy actions, and the read-only Describe calls EB performs
-during a deployment:
+Attach the AWS-managed `AWSElasticBeanstalkFullAccess` policy. An earlier
+version of this doc hand-rolled a least-privilege policy scoped to the two S3
+buckets and a short list of Describe calls, but EB's deploy pipeline drives a
+CloudFormation stack update under the hood that touches a much wider (and
+not fully documented) set of S3/CloudFormation/EC2/Auto Scaling actions.
+Chasing each `AccessDenied` one deploy at a time proved unreliable, so this
+role now uses the managed policy instead:
 
 ```bash
-cat > deploy-policy.json << 'JSON'
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "SourceBundleBucketAccess",
-      "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectAcl"],
-      "Resource": "arn:aws:s3:::eb-java-app-source-047719661196/*"
-    },
-    {
-      "Sid": "ElasticBeanstalkStorageBucket",
-      "Effect": "Allow",
-      "Action": ["s3:CreateBucket", "s3:GetBucketLocation", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:ListBucket"],
-      "Resource": "arn:aws:s3:::elasticbeanstalk-eu-north-1-047719661196"
-    },
-    {
-      "Sid": "ElasticBeanstalkStorageObjects",
-      "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject", "s3:GetObjectAcl", "s3:PutObjectAcl", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::elasticbeanstalk-eu-north-1-047719661196/*"
-    },
-    {
-      "Sid": "ElasticBeanstalkDeploy",
-      "Effect": "Allow",
-      "Action": [
-        "elasticbeanstalk:CreateApplicationVersion",
-        "elasticbeanstalk:UpdateEnvironment",
-        "elasticbeanstalk:DescribeEnvironments",
-        "elasticbeanstalk:DescribeApplicationVersions",
-        "elasticbeanstalk:DescribeEvents",
-        "elasticbeanstalk:DescribeConfigurationSettings"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "ElasticBeanstalkSupportingReads",
-      "Effect": "Allow",
-      "Action": [
-        "autoscaling:DescribeAutoScalingGroups",
-        "autoscaling:DescribeScalingActivities",
-        "autoscaling:DescribeLaunchConfigurations",
-        "cloudformation:DescribeStacks",
-        "cloudformation:DescribeStackResources",
-        "cloudformation:DescribeStackResource",
-        "cloudformation:GetTemplate",
-        "ec2:DescribeImages",
-        "ec2:DescribeInstances",
-        "ec2:DescribeLaunchTemplates",
-        "ec2:DescribeSecurityGroups",
-        "ec2:DescribeSubnets",
-        "ec2:DescribeVpcs",
-        "ec2:DescribeKeyPairs",
-        "ec2:DescribeAvailabilityZones",
-        "ec2:DescribeAccountAttributes",
-        "elasticloadbalancing:DescribeLoadBalancers",
-        "elasticloadbalancing:DescribeTargetGroups",
-        "elasticloadbalancing:DescribeTargetHealth"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "ElasticBeanstalkStackUpdate",
-      "Effect": "Allow",
-      "Action": ["cloudformation:UpdateStack"],
-      "Resource": "arn:aws:cloudformation:eu-north-1:047719661196:stack/awseb-*/*"
-    }
-  ]
-}
-JSON
+aws iam attach-role-policy \
+  --role-name github-actions-eb-deploy \
+  --policy-arn arn:aws:iam::aws:policy/AWSElasticBeanstalkFullAccess \
+  --profile admin
+```
 
-aws iam put-role-policy \
+If a custom `eb-deploy-least-privilege` inline policy was attached from an
+earlier setup, remove it so the role's permissions come from one place:
+
+```bash
+aws iam delete-role-policy \
   --role-name github-actions-eb-deploy \
   --policy-name eb-deploy-least-privilege \
-  --policy-document file://deploy-policy.json \
   --profile admin
 ```
 
