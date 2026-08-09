@@ -269,7 +269,7 @@ cat > deploy-policy.json << 'JSON'
     {
       "Sid": "SourceBundleBucketAccess",
       "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:GetObject"],
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectAcl"],
       "Resource": "arn:aws:s3:::eb-java-app-source-047719661196/*"
     },
     {
@@ -281,7 +281,7 @@ cat > deploy-policy.json << 'JSON'
     {
       "Sid": "ElasticBeanstalkStorageObjects",
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:GetObjectAcl"],
       "Resource": "arn:aws:s3:::elasticbeanstalk-eu-north-1-047719661196/*"
     },
     {
@@ -306,6 +306,7 @@ cat > deploy-policy.json << 'JSON'
         "autoscaling:DescribeLaunchConfigurations",
         "cloudformation:DescribeStacks",
         "cloudformation:DescribeStackResources",
+        "cloudformation:DescribeStackResource",
         "cloudformation:GetTemplate",
         "ec2:DescribeImages",
         "ec2:DescribeInstances",
