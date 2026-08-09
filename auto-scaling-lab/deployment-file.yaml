@@ -1,0 +1,3 @@
+template-file-path: auto-scaling-lab/template.yaml
+parameters: {}
+tags: {}
