@@ -257,7 +257,9 @@ aws iam create-role \
   --profile admin
 ```
 
-Attach the AWS-managed `AWSElasticBeanstalkFullAccess` policy. An earlier
+Attach the AWS-managed `AdministratorAccess-AWSElasticBeanstalk` policy
+(the older `AWSElasticBeanstalkFullAccess` policy this doc previously
+referenced was deprecated by AWS and is no longer attachable). An earlier
 version of this doc hand-rolled a least-privilege policy scoped to the two S3
 buckets and a short list of Describe calls, but EB's deploy pipeline drives a
 CloudFormation stack update under the hood that touches a much wider (and
@@ -268,7 +270,7 @@ role now uses the managed policy instead:
 ```bash
 aws iam attach-role-policy \
   --role-name github-actions-eb-deploy \
-  --policy-arn arn:aws:iam::aws:policy/AWSElasticBeanstalkFullAccess \
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk \
   --profile admin
 ```
 
