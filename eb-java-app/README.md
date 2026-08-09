@@ -274,13 +274,34 @@ aws iam attach-role-policy \
   --profile admin
 ```
 
-If a custom `eb-deploy-least-privilege` inline policy was attached from an
-earlier setup, remove it so the role's permissions come from one place:
+This managed policy's S3 grants only match buckets named `elasticbeanstalk-*`
+(the auto-created storage bucket) - it does **not** cover the custom-named
+source bundle bucket (`eb-java-app-source-047719661196`) that the workflow
+uploads to directly with `aws s3 cp`. Keep a small inline policy just for
+that bucket:
 
 ```bash
-aws iam delete-role-policy \
+cat > deploy-policy.json << 'JSON'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SourceBundleBucketAccess",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectAcl", "s3:GetBucketLocation", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::eb-java-app-source-047719661196",
+        "arn:aws:s3:::eb-java-app-source-047719661196/*"
+      ]
+    }
+  ]
+}
+JSON
+
+aws iam put-role-policy \
   --role-name github-actions-eb-deploy \
-  --policy-name eb-deploy-least-privilege \
+  --policy-name eb-deploy-source-bucket \
+  --policy-document file://deploy-policy.json \
   --profile admin
 ```
 
