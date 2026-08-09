@@ -281,7 +281,7 @@ cat > deploy-policy.json << 'JSON'
     {
       "Sid": "ElasticBeanstalkStorageObjects",
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject", "s3:GetObjectAcl"],
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:GetObjectAcl", "s3:PutObjectAcl", "s3:DeleteObject"],
       "Resource": "arn:aws:s3:::elasticbeanstalk-eu-north-1-047719661196/*"
     },
     {
