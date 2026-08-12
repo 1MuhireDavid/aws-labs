@@ -285,7 +285,7 @@ Resources:
         - !Ref InstanceRole
 
   # ---------------------------------------------------------------------------
-  # LAUNCH TEMPLATE
+  # LAUNCH TEMPLATE // scaling should give out the same output, smae config
   # ---------------------------------------------------------------------------
   WebLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate

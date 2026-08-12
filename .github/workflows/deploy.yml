@@ -10,6 +10,8 @@ on:
 
 # Only one deployment in flight at a time; a newer push supersedes an
 # in-progress one instead of racing it.
+
+# get's code packacge it---  be4 s3 -- check if no code already is if not in s3, 
 concurrency:
   group: eb-deploy-${{ github.ref }}
   cancel-in-progress: false
