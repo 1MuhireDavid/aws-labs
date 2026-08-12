@@ -1,3 +1,15 @@
 template-file-path: eb-java-app/infrastructure.yaml
-parameters: {}
-tags: {}
+
+parameters:
+  ApplicationName: eb-java-app
+  EnvironmentName: eb-java-app-prod
+  SourceBucketName: eb-java-app-source-047719661196
+  DynamoTableName: eb-app-heartbeat
+  GitHubOrg: 1MuhireDavid
+  GitHubRepo: aws-labs
+  SolutionStackName: "64bit Amazon Linux 2023 v4.12.5 running Corretto 17"
+  CreateOidcProvider: "false"
+
+tags:
+  Project: eb-java-app
+  ManagedBy: cloudformation-git-sync
