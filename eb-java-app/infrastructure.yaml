@@ -362,9 +362,12 @@ Resources:
 # ---------------------------------------------------------------------------
 Outputs:
 
-  EnvironmentURL:
-    Description: Public URL of the Elastic Beanstalk environment.
-    Value: !Sub "http://${BeanstalkEnvironment.EndpointURL}"
+  EnvironmentName:
+    Description: >
+      EB environment name. Get the public URL with:
+      aws elasticbeanstalk describe-environments --environment-names <name>
+      --query "Environments[0].CNAME" --output text
+    Value: !Ref BeanstalkEnvironment
 
   SourceBucket:
     Description: S3 bucket for source bundles (set as EB_SOURCE_BUCKET in GitHub).
