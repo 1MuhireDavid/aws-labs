@@ -163,6 +163,28 @@ Resources:
                   - dynamodb:GetItem
                   - dynamodb:DescribeTable
                 Resource: !GetAtt HeartbeatTable.Arn
+        - PolicyName: eb-deploy-support
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Read the application source bundle from our custom bucket.
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub "arn:aws:s3:::${SourceBucketName}"
+                  - !Sub "arn:aws:s3:::${SourceBucketName}/*"
+                  - !Sub "arn:aws:s3:::elasticbeanstalk-${AWS::Region}-${AWS::AccountId}"
+                  - !Sub "arn:aws:s3:::elasticbeanstalk-${AWS::Region}-${AWS::AccountId}/*"
+              # EC2 describe calls EB's instance agent needs during deploy.
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeLaunchTemplateVersions
+                  - ec2:DescribeInstances
+                Resource: "*"
       Tags:
         - { Key: Project, Value: eb-java-app }
 
