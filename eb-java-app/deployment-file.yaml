@@ -2,7 +2,7 @@ template-file-path: eb-java-app/infrastructure.yaml
 
 parameters:
   ApplicationName: eb-java-app
-  EnvironmentName: eb-java-app-prod
+  EnvironmentName: eb-java-app-prod2
   SourceBucketName: eb-java-app-source-047719661196
   DynamoTableName: eb-app-heartbeat
   GitHubOrg: 1MuhireDavid
