@@ -54,12 +54,12 @@ public class AppController {
         response.put("buildTime", buildTime);
         return response;
     }
-    // @GetMapping("/hello")
-    // public Map<String, Object> hello() {
-    //     Map<String, Object> response = new LinkedHashMap<>();
-    //     response.put("message", "Hello, World!");
-    //     return response;
-    // }
+    @GetMapping("/hello")
+    public Map<String, Object> hello() {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("message", "Hello, World!");
+        return response;
+    }
 
     @GetMapping("/db-check")
     public Map<String, Object> dbCheck() {
