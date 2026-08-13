@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -m 15 -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" \"http://eb-java-app-prod.eba-zay7wjpw.eu-north-1.elasticbeanstalk.com/version\")",
+      "Bash(curl -s -m 15 -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" \"http://eb-java-app-prod.eba-zay7wjpw.eu-north-1.elasticbeanstalk.com/\")",
+      "Bash(curl -s -m 15 -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" \"http://eb-java-app-prod.eba-zay7wjpw.eu-north-1.elasticbeanstalk.com/db-check\")",
+      "Read(//c/Users/Amalitech/Documents/aws/**)",
+      "Bash(gh run *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)"
+    ]
+  }
+}
