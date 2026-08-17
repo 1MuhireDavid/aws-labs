@@ -1,0 +1,70 @@
+name: "[ecs-bluegreen-lab] Package nested templates to S3"
+
+# Lives at repo root (GitHub only triggers workflows from .github/workflows/
+# at the repo root, even in a monorepo) but is path-filtered so it only
+# runs for changes inside THIS lab's folder -- other labs in aws-labs are
+# unaffected, and this workflow doesn't run for their changes either.
+#
+# This workflow does NOT deploy anything itself. Its only job is to get
+# nested-stack template bodies into the S3 bucket that root.yaml's
+# TemplateURL properties point at, then nudge Git sync (by bumping
+# TemplatesVersion in deployment-file.yaml) so CloudFormation notices.
+# Actual deployment stays 100% owned by CloudFormation Git sync.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ecs-fargate-bluegreen-cicd-lab/infra/cfn/modules/**"
+      - "ecs-fargate-bluegreen-cicd-lab/infra/cfn/root.yaml"
+
+permissions:
+  id-token: write   # required for OIDC -> AWS
+  contents: write    # required to commit the version bump back
+
+concurrency:
+  group: ecs-bluegreen-lab-package-templates
+  cancel-in-progress: false
+
+env:
+  LAB_DIR: ecs-fargate-bluegreen-cicd-lab/infra
+
+jobs:
+  package-and-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_INFRA_PACKAGING_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Compute template version (short SHA)
+        id: version
+        run: echo "sha=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload nested templates to S3
+        run: |
+          aws s3 cp "${LAB_DIR}/cfn/modules/" \
+            "s3://${{ secrets.AWS_TEMPLATES_BUCKET }}/templates/${{ steps.version.outputs.sha }}/" \
+            --recursive --exclude "*" --include "*.yaml"
+
+      - name: Bump TemplatesVersion in deployment-file.yaml
+        run: |
+          sed -i \
+            "s/^  TemplatesVersion:.*/  TemplatesVersion: \"${{ steps.version.outputs.sha }}\"/" \
+            "${LAB_DIR}/cfn/deployment-file.yaml"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "${LAB_DIR}/cfn/deployment-file.yaml"
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ecs-bluegreen-lab): point Git sync at templates ${{ steps.version.outputs.sha }} [skip ci]"
+            git push
+          else
+            echo "No version change to commit."
+          fi

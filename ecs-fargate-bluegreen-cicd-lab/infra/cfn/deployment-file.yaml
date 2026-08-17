@@ -1,0 +1,68 @@
+# CloudFormation Git sync "deployment file".
+#
+# This is the file Git sync actually watches for changes (together with
+# the template it points to). When you first turn on Git sync in the
+# console you can either supply this file yourself (recommended -- it's
+# reviewable, versioned application config) or let Git sync generate one
+# for you as a pull request. If AWS's generated schema differs slightly
+# from below by the time you set this up, accept AWS's PR once and diff
+# it against this file rather than fighting the console.
+#
+# MONOREPO NOTE: when you turn on Git sync in the console, you'll point it
+# at this file's path within the repo:
+#   ecs-fargate-bluegreen-cicd-lab/infra/cfn/deployment-file.yaml
+# `template-file-path` below is relative to THIS file's own directory
+# (they're siblings), not the repo root, so it does not need to change.
+#
+# Docs: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/git-sync-concepts-terms.html
+
+template-file-path: ./root.yaml
+
+stack-name: ecs-bluegreen-lab
+
+capabilities:
+  - CAPABILITY_NAMED_IAM
+
+parameters:
+  ProjectName: ecs-bluegreen-lab
+
+  # Filled in by the bootstrap stack's outputs (00-bootstrap.yaml) -- copy
+  # the TemplatesBucketName output value here once, after bootstrap.sh runs.
+  TemplatesBucketName: "REPLACE_WITH_BOOTSTRAP_OUTPUT_TemplatesBucketName"
+
+  # Overwritten automatically by
+  # .github/workflows/ecs-bluegreen-lab-infra-package-templates.yml every
+  # time ecs-fargate-bluegreen-cicd-lab/infra/cfn/modules/** changes --
+  # see that workflow for the commit-back step. Leave the placeholder
+  # below for the very first push.
+  TemplatesVersion: "init"
+
+  VpcCIDR: 10.20.0.0/16
+  PublicSubnet1CIDR: 10.20.0.0/24
+  PublicSubnet2CIDR: 10.20.1.0/24
+  PrivateSubnet1CIDR: 10.20.10.0/24
+  PrivateSubnet2CIDR: 10.20.11.0/24
+  SingleNatGateway: "true"
+
+  ContainerPort: 8080
+  InitialImageTag: bootstrap
+  TaskCpu: "256"
+  TaskMemory: "512"
+  MinTasks: 1
+  DesiredTasks: 1
+  MaxTasks: 4
+  CpuTargetPercent: 60
+
+  AppOwnerName: "REPLACE_WITH_YOUR_FULL_NAME"
+  LabName: "ECS Fargate Blue/Green CI/CD Lab"
+
+  GitHubOrg: "1MuhireDavid"
+  RepoName: "aws-labs"
+  AppRepoBranch: main
+  DeployedImageTag: latest
+
+tags:
+  Project: ecs-bluegreen-lab
+  ManagedBy: CloudFormation-GitSync
+  Environment: lab
+

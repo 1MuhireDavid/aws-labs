@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+app:
+  owner-name: ${APP_OWNER_NAME:Your Full Name}
+  lab-name: ${LAB_NAME:ECS Fargate Blue/Green CI/CD Lab}
+  version: ${APP_VERSION:local-dev}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO

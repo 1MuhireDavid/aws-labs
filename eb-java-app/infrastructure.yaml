@@ -88,7 +88,8 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
       Tags:
-        - { Key: Project, Value: eb-java-app }
+        - Key: Project
+          Value: eb-java-app
 
   # Bucket policy letting the Elastic Beanstalk service read source bundles.
   # Required because this bucket has a custom name (not the auto-created
@@ -131,7 +132,8 @@ Resources:
         - AttributeName: id
           KeyType: HASH
       Tags:
-        - { Key: Project, Value: eb-java-app }
+        - key: Project
+          value: eb-java-app
 
   # =========================================================================
   # 3. EC2 instance role - attached to the EB instances so the running app
@@ -186,7 +188,9 @@ Resources:
                   - ec2:DescribeInstances
                 Resource: "*"
       Tags:
-        - { Key: Project, Value: eb-java-app }
+        - Key: Project
+          Value: eb-java-app
+
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -299,7 +303,8 @@ Resources:
                   - elasticloadbalancing:DescribeTargetHealth
                 Resource: "*"
       Tags:
-        - { Key: Project, Value: eb-java-app }
+        - Key: Project
+          Value: eb-java-app
 
   # =========================================================================
   # 6. Elastic Beanstalk service role - EB assumes this to manage the
@@ -320,7 +325,8 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
         - arn:aws:iam::aws:policy/AWSElasticBeanstalkManagedUpdatesCustomerRolePolicy
       Tags:
-        - { Key: Project, Value: eb-java-app }
+        - Key: Project
+          Value: eb-java-app
 
   # =========================================================================
   # 7. Elastic Beanstalk application - the container for versioned releases.
@@ -377,7 +383,8 @@ Resources:
           OptionName: AWS_REGION
           Value: !Ref AWS::Region
       Tags:
-        - { Key: Project, Value: eb-java-app }
+        - Key: Project
+          Value: eb-java-app
 
 # ---------------------------------------------------------------------------
 # Outputs - handy values printed after the stack finishes.
