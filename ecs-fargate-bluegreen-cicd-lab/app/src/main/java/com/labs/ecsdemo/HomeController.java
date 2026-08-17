@@ -2,7 +2,6 @@ package com.labs.ecsdemo;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
