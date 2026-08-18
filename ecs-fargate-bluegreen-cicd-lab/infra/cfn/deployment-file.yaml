@@ -28,7 +28,7 @@ parameters:
 
   # Filled in by the bootstrap stack's outputs (00-bootstrap.yaml) -- copy
   # the TemplatesBucketName output value here once, after bootstrap.sh runs.
-  TemplatesBucketName: "REPLACE_WITH_BOOTSTRAP_OUTPUT_TemplatesBucketName"
+  TemplatesBucketName: "ecs-bluegreen-lab-cfn-templates-085876626162-us-east-1"
 
   # Overwritten automatically by
   # .github/workflows/ecs-bluegreen-lab-infra-package-templates.yml every
@@ -53,7 +53,7 @@ parameters:
   MaxTasks: 4
   CpuTargetPercent: 60
 
-  AppOwnerName: "REPLACE_WITH_YOUR_FULL_NAME"
+  AppOwnerName: "DAVID MUHIRE"
   LabName: "ECS Fargate Blue/Green CI/CD Lab"
 
   GitHubOrg: "1MuhireDavid"
