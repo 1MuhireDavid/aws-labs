@@ -36,7 +36,7 @@ parameters:
   # time ecs-fargate-bluegreen-cicd-lab/infra/cfn/modules/** changes --
   # see that workflow for the commit-back step. Leave the placeholder
   # below for the very first push.
-  TemplatesVersion: init
+  TemplatesVersion: dc59511d5dec
 
   VpcCIDR: 10.20.0.0/16
   PublicSubnet1CIDR: 10.20.0.0/24
