@@ -54,7 +54,7 @@ jobs:
       - name: Bump TemplatesVersion in deployment-file.yaml
         run: |
           sed -i \
-            "s/^  TemplatesVersion:.*/  TemplatesVersion: \"${{ steps.version.outputs.sha }}\"/" \
+            "s/^  TemplatesVersion:.*/  TemplatesVersion: ${{ steps.version.outputs.sha }}/" \
             "${LAB_DIR}/cfn/deployment-file.yaml"
 
       - name: Commit version bump

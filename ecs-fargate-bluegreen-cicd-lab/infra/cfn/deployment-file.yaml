@@ -31,14 +31,14 @@ parameters:
 
   # Filled in by the bootstrap stack's outputs (00-bootstrap.yaml) -- copy
   # the TemplatesBucketName output value here once, after bootstrap.sh runs.
-  TemplatesBucketName: "ecs-bluegreen-lab-cfn-templates-085876626162-us-east-1"
+  TemplatesBucketName: ecs-bluegreen-lab-cfn-templates-085876626162-us-east-1
 
   # Overwritten automatically by
   # .github/workflows/ecs-bluegreen-lab-infra-package-templates.yml every
   # time ecs-fargate-bluegreen-cicd-lab/infra/cfn/modules/** changes --
   # see that workflow for the commit-back step. Leave the placeholder
   # below for the very first push.
-  TemplatesVersion: "init"
+  TemplatesVersion: init
 
   VpcCIDR: 10.20.0.0/16
   PublicSubnet1CIDR: 10.20.0.0/24
@@ -56,10 +56,10 @@ parameters:
   MaxTasks: 4
   CpuTargetPercent: 60
 
-  AppOwnerName: "DAVID MUHIRE"
+  AppOwnerName: DAVID MUHIRE
   LabName: "ECS Fargate Blue/Green CI/CD Lab"
 
-  GitHubOrg: "1MuhireDavid"
+  GitHubOrg: 1MuhireDavid
   RepoName: "aws-labs"
   AppRepoBranch: main
   DeployedImageTag: latest
