@@ -45,6 +45,10 @@ APP_ROLE_ARN=$(aws cloudformation describe-stacks --region "${AWS_REGION}" \
   --stack-name "${STACK_NAME}" \
   --query "Stacks[0].Outputs[?OutputKey=='AppEcrPushRoleArn'].OutputValue" --output text)
 
+DEPLOY_ROLE_ARN=$(aws cloudformation describe-stacks --region "${AWS_REGION}" \
+  --stack-name "${STACK_NAME}" \
+  --query "Stacks[0].Outputs[?OutputKey=='InfraDeployRoleArn'].OutputValue" --output text)
+
 cat <<EOF
 
 Both workflows live in the SAME repo (${GITHUB_ORG}/${REPO_NAME}), so all
@@ -57,8 +61,13 @@ separate repos.
      AWS_INFRA_PACKAGING_ROLE_ARN = ${INFRA_ROLE_ARN}
      AWS_TEMPLATES_BUCKET         = ${TEMPLATES_BUCKET}
      AWS_ECR_PUSH_ROLE_ARN        = ${APP_ROLE_ARN}
+     AWS_INFRA_DEPLOY_ROLE_ARN    = ${DEPLOY_ROLE_ARN}
      AWS_REGION                   = ${AWS_REGION}
      ECR_REPOSITORY               = ecs-bluegreen-lab-app
+
+   AWS_INFRA_DEPLOY_ROLE_ARN is only needed if you run the manual
+   ".github/workflows/ecs-bluegreen-lab-infra-deploy.yml" fallback
+   (bypasses CloudFormation Git sync, deploys via the CLI instead).
 
 2) In ecs-fargate-bluegreen-cicd-lab/infra/cfn/deployment-file.yaml, set:
      TemplatesBucketName: ${TEMPLATES_BUCKET}

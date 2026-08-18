@@ -39,6 +39,14 @@ Parameters:
     Default: ecs-bluegreen-lab-app-build-and-push.yml
     Description: Filename (under repo-root .github/workflows/) of the app build/push workflow.
 
+  InfraDeployWorkflowFile:
+    Type: String
+    Default: ecs-bluegreen-lab-infra-deploy.yml
+    Description: >
+      Filename (under repo-root .github/workflows/) of the manual direct-deploy
+      workflow -- a fallback that deploys root.yaml via the CLI, used when
+      CloudFormation Git sync isn't picking up stack parameters correctly.
+
   CreateOidcProvider:
     Type: String
     Default: "true"
@@ -211,6 +219,41 @@ Resources:
         - Key: Project
           Value: !Ref ProjectName
 
+  # ---------------------------------------------------------------------
+  # Role for the manual direct-deploy workflow. This is a fallback path
+  # that deploys root.yaml straight via `aws cloudformation deploy`,
+  # bypassing CloudFormation Git sync -- so unlike the two roles above it
+  # needs broad enough permissions to create every resource type root.yaml
+  # and its nested stacks provision (VPC, ALB, ECS, autoscaling, IAM roles
+  # for CAPABILITY_NAMED_IAM, CodePipeline, ...). Scoped to this exact
+  # repo + branch + workflow file like the others; kept manual
+  # (workflow_dispatch only, see the workflow file) rather than
+  # push-triggered as an extra guardrail given the broad permissions.
+  # ---------------------------------------------------------------------
+  InfraDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-gha-infra-deploy-role"
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              StringEquals:
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+              StringLike:
+                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${RepoName}:ref:${AllowedGitRef}"
+                "token.actions.githubusercontent.com:job_workflow_ref": !Sub "${GitHubOrg}/${RepoName}/.github/workflows/${InfraDeployWorkflowFile}@${AllowedGitRef}"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+
 Outputs:
   TemplatesBucketName:
     Value: !Ref TemplatesBucket
@@ -222,3 +265,6 @@ Outputs:
 
   AppEcrPushRoleArn:
     Value: !GetAtt AppEcrPushRole.Arn
+
+  InfraDeployRoleArn:
+    Value: !GetAtt InfraDeployRole.Arn
