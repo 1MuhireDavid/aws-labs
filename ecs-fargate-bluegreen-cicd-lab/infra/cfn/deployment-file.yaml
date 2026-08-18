@@ -16,15 +16,13 @@
 #
 # Docs: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/git-sync-concepts-terms.html
 #
-# NOTE: retrigger commit to force Git sync to re-read the current file after
-# an initial changeset failed due to a stale/racy webhook snapshot.
+# NOTE: the deployment file schema is only template-file-path/parameters/tags
+# (see the other labs' deployment-file.yaml in this repo) -- there's no
+# stack-name or capabilities field. The stack name and the IAM-capability
+# acknowledgment are both set in the console when configuring Git sync for
+# this stack, not in this file.
 
 template-file-path: ./root.yaml
-
-stack-name: ecs-bluegreen-lab
-
-capabilities:
-  - CAPABILITY_NAMED_IAM
 
 parameters:
   ProjectName: ecs-bluegreen-lab
