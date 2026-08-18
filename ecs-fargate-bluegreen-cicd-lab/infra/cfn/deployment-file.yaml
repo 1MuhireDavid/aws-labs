@@ -15,6 +15,9 @@
 # (they're siblings), not the repo root, so it does not need to change.
 #
 # Docs: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/git-sync-concepts-terms.html
+#
+# NOTE: retrigger commit to force Git sync to re-read the current file after
+# an initial changeset failed due to a stale/racy webhook snapshot.
 
 template-file-path: ./root.yaml
 
