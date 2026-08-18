@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class HomeController {
@@ -19,13 +21,26 @@ public class HomeController {
     @Value("${app.version}")
     private String appVersion;
 
+    private final RevisionLogService revisionLog;
+
+    public HomeController(RevisionLogService revisionLog) {
+        this.revisionLog = revisionLog;
+    }
+
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("ownerName", ownerName);
         model.addAttribute("labName", labName);
         model.addAttribute("appVersion", appVersion);
         model.addAttribute("hostname", resolveHostname());
+        model.addAttribute("revisions", revisionLog.entries());
         return "index";
+    }
+
+    @PostMapping("/revisions")
+    public String addRevision(@RequestParam String author, @RequestParam String note) {
+        revisionLog.add(author, note);
+        return "redirect:/";
     }
 
     // Surfacing the container's own hostname (== ECS task ENI id) makes a
