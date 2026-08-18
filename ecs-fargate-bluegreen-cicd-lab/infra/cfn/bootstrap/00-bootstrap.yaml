@@ -144,7 +144,7 @@ Resources:
               StringEquals:
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
               StringLike:
-                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${RepoName}:${AllowedGitRef}"
+                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${RepoName}:ref:${AllowedGitRef}"
                 "token.actions.githubusercontent.com:job_workflow_ref": !Sub "${GitHubOrg}/${RepoName}/.github/workflows/${InfraPackagingWorkflowFile}@${AllowedGitRef}"
       Policies:
         - PolicyName: PutNestedTemplates
@@ -184,7 +184,7 @@ Resources:
               StringEquals:
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
               StringLike:
-                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${RepoName}:${AllowedGitRef}"
+                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${RepoName}:ref:${AllowedGitRef}"
                 "token.actions.githubusercontent.com:job_workflow_ref": !Sub "${GitHubOrg}/${RepoName}/.github/workflows/${AppBuildWorkflowFile}@${AllowedGitRef}"
       Policies:
         - PolicyName: EcrPushOnly
