@@ -177,6 +177,17 @@ Resources:
                   - "codedeploy:GetApplicationRevision"
                   - "codedeploy:RegisterApplicationRevision"
                 Resource: "*"
+              - Sid: RegisterTaskDefinitionForDeploy
+                Effect: Allow
+                Action:
+                  # RegisterTaskDefinition/DeregisterTaskDefinition don't
+                  # support resource-level restriction (the new revision
+                  # ARN doesn't exist yet at call time), hence Resource: "*"
+                  # rather than scoping to the family ARN.
+                  - "ecs:RegisterTaskDefinition"
+                  - "ecs:DescribeTaskDefinition"
+                  - "ecs:DeregisterTaskDefinition"
+                Resource: "*"
               - Sid: PassRolesToEcs
                 Effect: Allow
                 Action: "iam:PassRole"
