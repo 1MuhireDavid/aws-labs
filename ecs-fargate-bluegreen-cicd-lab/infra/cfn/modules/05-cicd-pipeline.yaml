@@ -59,7 +59,9 @@ Resources:
   GitHubConnection:
     Type: AWS::CodeStarConnections::Connection
     Properties:
-      ConnectionName: !Sub "${ProjectName}-github-connection"
+      # ConnectionName has a 32-char AWS limit; "${ProjectName}-github-connection"
+      # runs over it, hence the shorter "-github-conn" suffix here.
+      ConnectionName: !Sub "${ProjectName}-github-conn"
       ProviderType: GitHub
 
   ArtifactBucket:
