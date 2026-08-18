@@ -7,3 +7,4 @@ Resources:
         LoadBalancerInfo:
           ContainerName: "ecs-bluegreen-lab-container"
           ContainerPort: 8080
+
