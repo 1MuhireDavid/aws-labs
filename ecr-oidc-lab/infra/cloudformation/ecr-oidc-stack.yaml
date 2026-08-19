@@ -70,7 +70,12 @@ Resources:
       RepositoryName: !Ref EcrRepositoryName
       ImageScanningConfiguration:
         ScanOnPush: true
-      ImageTagMutability: IMMUTABLE
+      ImageTagMutability: IMMUTABLE_WITH_EXCLUSION
+      ImageTagMutabilityExclusions:
+        # The workflow re-pushes the "latest" tag on every run by design.
+        # Everything else (the git-sha tags) stays truly immutable.
+        - ImageTagMutabilityExclusionFilterType: WILDCARD
+          ImageTagMutabilityExclusionFilterValue: "latest"
       EncryptionConfiguration:
         EncryptionType: AES256
       LifecyclePolicy:
