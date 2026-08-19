@@ -9,6 +9,3 @@ parameters:
   # Set to "false" if an earlier lab in this same AWS account already
   # created the token.actions.githubusercontent.com OIDC provider.
   CreateOidcProvider: "false"
-tags:
-  project: ecr-oidc-lab
-  managed-by: cloudformation-git-sync
