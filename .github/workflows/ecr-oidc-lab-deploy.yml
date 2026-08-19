@@ -1,0 +1,81 @@
+name: ecr-oidc-lab - Build and Push Docker Image to ECR
+
+# This repo (1MuhireDavid/aws-labs) holds many labs. The path filter means
+# this workflow only runs when something under ecr-oidc-lab/ (or the
+# workflow file itself) changes — pushes that touch other labs don't
+# trigger a build/push here. Still fires on every push that does touch this
+# lab, on any branch, per the lab spec.
+on:
+  push:
+    paths:
+      - 'ecr-oidc-lab/**'
+      - '.github/workflows/ecr-oidc-lab-deploy.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: ecr-oidc-lab
+  IMAGE_TAG: latest
+  LAB_DIR: ecr-oidc-lab/app
+
+jobs:
+  build-and-push:
+    name: Build, scan, tag, and push image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # No AWS access keys anywhere in this repo or in GitHub Secrets.
+      # This step exchanges the workflow's OIDC token for short-lived AWS
+      # credentials by calling sts:AssumeRoleWithWebIdentity against the
+      # IAM role defined in ecr-oidc-lab/infra/cloudformation/ecr-oidc-stack.yaml.
+      # The role's trust policy checks both the repo/branch AND this exact
+      # workflow file (job_workflow_ref) — see docs/architecture.md — so
+      # other labs' workflows in this same repo cannot assume it.
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-ECR-Push-ecr-oidc-lab
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        working-directory: ${{ env.LAB_DIR }}
+        run: |
+          docker build \
+            --tag "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}" \
+            --tag "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" \
+            .
+
+      # Defense in depth: scan for known CVEs before anything is pushed.
+      # The job fails (and nothing is pushed) on a CRITICAL finding,
+      # satisfying "pipeline fails securely on error".
+      - name: Scan image for vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          format: table
+          severity: CRITICAL
+          exit-code: '1'
+
+      - name: Push image to Amazon ECR
+        run: |
+          docker push "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+          docker push "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+
+      - name: Publish summary
+        if: success()
+        run: |
+          echo "### :rocket: [ecr-oidc-lab] Image pushed to ECR" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Repository: \`${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tags: \`latest\`, \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"

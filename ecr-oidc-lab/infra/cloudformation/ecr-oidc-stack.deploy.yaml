@@ -1,0 +1,14 @@
+template-file-path: ecr-oidc-lab/infra/cloudformation/ecr-oidc-stack.yaml
+parameters:
+  GitHubOrg: 1MuhireDavid
+  GitHubRepo: aws-labs
+  GitHubBranch: main
+  GitHubWorkflowPath: .github/workflows/ecr-oidc-lab-deploy.yml
+  EcrRepositoryName: ecr-oidc-lab
+  RoleName: ecr-oidc-lab-github-actions-role
+  # Set to "false" if an earlier lab in this same AWS account already
+  # created the token.actions.githubusercontent.com OIDC provider.
+  CreateOidcProvider: "false"
+tags:
+  project: ecr-oidc-lab
+  managed-by: cloudformation-git-sync

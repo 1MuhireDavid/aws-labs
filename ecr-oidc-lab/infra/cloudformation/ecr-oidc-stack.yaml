@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Least-privilege GitHub Actions OIDC role plus a private, scanned,
+  immutable-tag Amazon ECR repository whose resource policy only allows
+  push/pull from that one role. Written for a monorepo (one GitHub repo
+  hosting several labs) — the trust policy is scoped down to one exact
+  workflow file, not just the repo/branch, and the role/repo names are
+  parameterized so multiple labs' stacks can coexist in one AWS account.
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Description: GitHub organization or username that owns the repository.
+  GitHubRepo:
+    Type: String
+    Description: Repository name (without the org/ prefix).
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Only this branch's workflow runs may assume the role.
+  GitHubWorkflowPath:
+    Type: String
+    Default: .github/workflows/ecr-oidc-lab-deploy.yml
+    Description: >
+      Path (from repo root) to the exact workflow file allowed to assume
+      this role. Because this repo hosts multiple labs sharing one
+      repo/branch, restricting by repo+branch alone would let *any*
+      workflow in the repo assume this role -- this pins it to one file.
+  EcrRepositoryName:
+    Type: String
+    Default: ecr-oidc-lab
+  RoleName:
+    Type: String
+    Default: ecr-oidc-lab-github-actions-role
+    Description: >
+      Must be unique within the AWS account. Kept lab-specific (rather than
+      a generic name) since other labs in this account will deploy their
+      own roles from their own copies of this template.
+  CreateOidcProvider:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: >
+      Set to "false" if token.actions.githubusercontent.com is already
+      registered as an OIDC provider in this AWS account (only one instance
+      of a given provider URL is allowed per account -- if an earlier lab
+      in this same account already created it, use "false" here).
+
+Conditions:
+  ShouldCreateOidcProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: ShouldCreateOidcProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        # AWS validates the OIDC issuer's TLS chain against its trusted CA
+        # store rather than this value today, but the field is still
+        # required by the API/CFN resource type.
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  EcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref EcrRepositoryName
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Expire untagged images after 7 days",
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "sinceImagePushed",
+                  "countUnit": "days",
+                  "countNumber": 7
+                },
+                "action": { "type": "expire" }
+              },
+              {
+                "rulePriority": 2,
+                "description": "Keep only the 10 most recent tagged images",
+                "selection": {
+                  "tagStatus": "tagged",
+                  "tagPrefixList": ["latest"],
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      # Defense in depth: even though the IAM role's own permissions policy
+      # is already scoped to this one repository, the repository's resource
+      # policy independently only trusts that same role's ARN. Built with
+      # !GetAtt below (not a separate AWS::ECR::RepositoryPolicy resource --
+      # that type doesn't exist; RepositoryPolicyText is a property of
+      # AWS::ECR::Repository itself).
+      RepositoryPolicyText:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowPushPullFromCiRoleOnly
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt GitHubActionsDeployRole.Arn
+            Action:
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:PutImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+      Tags:
+        - Key: Project
+          Value: ecr-oidc-lab
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Environment
+          Value: production
+
+  GitHubActionsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      Description: >
+        Assumed only by the ecr-oidc-lab workflow on GitHubOrg/GitHubRepo@GitHubBranch,
+        via OIDC, to push/pull a single ECR repository. No console access,
+        no long-lived keys. Trust is scoped to one exact workflow file so
+        other labs sharing this repo cannot assume it.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                # Repo + branch (the usual scoping)...
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}
+                # ...AND the exact workflow file. Both StringLike keys are
+                # ANDed together, so a token from a *different* workflow in
+                # this same repo/branch (i.e. a different lab) satisfies the
+                # first condition but fails this one, and is rejected.
+                token.actions.githubusercontent.com:job_workflow_ref: !Sub ${GitHubOrg}/${GitHubRepo}/${GitHubWorkflowPath}@refs/heads/${GitHubBranch}
+      Policies:
+        - PolicyName: EcrPushLeastPrivilege
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: EcrAuthToken
+                Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Sid: EcrPushPullSingleRepo
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:PutImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                # Built deterministically from the parameter (rather than
+                # !GetAtt EcrRepository.Arn) so this role has no dependency
+                # on the repository resource -- the repository's own
+                # RepositoryPolicyText, below, is what depends on this role's
+                # ARN. Avoids a circular resource dependency.
+                Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepositoryName}
+      Tags:
+        - Key: Project
+          Value: ecr-oidc-lab
+
+Outputs:
+  EcrRepositoryUri:
+    Description: Push/pull with this URI (used by `docker build -t <uri>:tag`)
+    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepositoryName}
+  GitHubActionsRoleArn:
+    Description: Put this value in the AWS_ROLE_ARN GitHub Actions secret
+    Value: !GetAtt GitHubActionsDeployRole.Arn
