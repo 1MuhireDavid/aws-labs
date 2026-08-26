@@ -103,6 +103,16 @@ In the CloudFormation console, create a stack using **"Sync from Git"**
    parameter's description in the template). Leave the rest blank to use
    the template's own defaults (`ApplicationName`, `EnvironmentName`,
    `DynamoTableName`, `GitHubOrg`, `GitHubRepo`, `SolutionStackName`).
+   `SolutionStackName` must be an exact, currently-available platform
+   string - CloudFormation has no "latest" keyword for it, and AWS retires
+   old versions over time (this is what caused the `CREATE_FAILED` on
+   `BeanstalkEnvironment` if you hit "No Solution Stack named ... found").
+   Confirm the current one with
+   `aws elasticbeanstalk list-available-solution-stacks --region eu-north-1 --query "SolutionStacks[?contains(@, 'Corretto 17')]"`
+   before deploying if it's been a while. The environment has Managed
+   Platform Updates enabled (`aws:elasticbeanstalk:managedactions`), so once
+   it's running, patch/minor platform bumps apply automatically - this pin
+   should only need re-checking if you're doing a fresh `CREATE`.
 5. **Template definition repository:** repository `aws-labs`, branch
    `main` (the linked repo/branch this stack tracks going forward).
 6. **Deployment file path:** where CloudFormation commits the generated

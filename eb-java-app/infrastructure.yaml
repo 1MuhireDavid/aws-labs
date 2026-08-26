@@ -357,6 +357,22 @@ Resources:
         - Namespace: aws:elasticbeanstalk:environment
           OptionName: ServiceRole
           Value: !Ref ServiceRole
+        # Managed platform updates - lets EB auto-apply patch/minor platform
+        # version bumps (Corretto/OS patches) during the preferred window,
+        # using the AWSElasticBeanstalkManagedUpdatesCustomerRolePolicy
+        # already attached to ServiceRole. Keeps the environment current
+        # between deploys so the pinned SolutionStackName parameter doesn't
+        # need to be manually re-checked/bumped every time AWS retires the
+        # exact version it's pointing at.
+        - Namespace: aws:elasticbeanstalk:managedactions
+          OptionName: ManagedActionsEnabled
+          Value: "true"
+        - Namespace: aws:elasticbeanstalk:managedactions
+          OptionName: PreferredStartTime
+          Value: "Sun:02:00"
+        - Namespace: aws:elasticbeanstalk:managedactions:platformupdate
+          OptionName: UpdateLevel
+          Value: minor
         # Load-balanced => provisions the ALB + auto scaling group.
         - Namespace: aws:elasticbeanstalk:environment
           OptionName: EnvironmentType
