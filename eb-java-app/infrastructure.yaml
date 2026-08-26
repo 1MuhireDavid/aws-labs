@@ -132,8 +132,8 @@ Resources:
         - AttributeName: id
           KeyType: HASH
       Tags:
-        - key: Project
-          value: eb-java-app
+        - Key: Project
+          Value: eb-java-app
 
   # =========================================================================
   # 3. EC2 instance role - attached to the EB instances so the running app
