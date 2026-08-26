@@ -7,7 +7,7 @@ parameters:
   DynamoTableName: eb-app-heartbeat
   GitHubOrg: 1MuhireDavid
   GitHubRepo: aws-labs
-  SolutionStackName: "64bit Amazon Linux 2023 v4.12.5 running Corretto 17"
+  SolutionStackName: "64bit Amazon Linux 2023 v4.12.7 running Corretto 17"
   CreateOidcProvider: "false"
 
 tags:

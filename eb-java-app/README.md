@@ -11,7 +11,7 @@ backend dependency.
 - **Application URL:** http://eb-java-app-prod.eba-zay7wjpw.eu-north-1.elasticbeanstalk.com
 - **Region:** `eu-north-1`
 - **Elastic Beanstalk application / environment:** `eb-java-app` / `eb-java-app-prod`
-- **Platform:** `64bit Amazon Linux 2023 v4.12.5 running Corretto 17`
+- **Platform:** `64bit Amazon Linux 2023 v4.12.7 running Corretto 17`
 - **Source bundle bucket:** `eb-java-app-source-047719661196`
 - **External service:** DynamoDB table `eb-app-heartbeat`
 
