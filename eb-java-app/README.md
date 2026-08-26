@@ -74,292 +74,135 @@ eb-java-app/
 
 ---
 
-## 1. One-time AWS setup
+## 1. One-time AWS setup (CloudFormation Git sync)
 
-All commands assume the AWS CLI is configured with a profile named `admin`
-that has setup rights, and that everything lives in `eu-north-1`. Account ID
-used here is `047719661196` - substitute your own where relevant.
+Everything AWS-side - the S3 bucket, the DynamoDB table, the EC2 instance
+role, the GitHub OIDC provider and deploy role, and the Elastic Beanstalk
+application/environment - is provisioned by a single stack defined in
+[`infrastructure.yaml`](infrastructure.yaml). This stack is connected to
+this repository via **CloudFormation Git sync**, so after the one-time setup
+below there is no manual template upload, no `aws cloudformation deploy`,
+and no console click-through for any future infrastructure change - editing
+`infrastructure.yaml` and pushing to `main` is the entire deploy process.
 
-### 1.1 Create the S3 bucket for source bundles
+### 1.1 One-time: connect CloudFormation to this repo
+
+In the CloudFormation console, create a stack using **"Sync from Git"**
+(not "Upload a template file"):
+
+1. **Stack name:** `eb-java-app`.
+2. **Stack deployment file:** choose *"Create the file using the following
+   parameters and place it in my repository"* - this has CloudFormation
+   generate and commit the deployment file for you, instead of hand-writing
+   one (which would just be a different kind of manual step).
+3. **Template file path:** `eb-java-app/infrastructure.yaml`.
+4. **Parameters:** fill in `SourceBucketName` (e.g.
+   `eb-java-app-source-<your-account-id>` - required, has no default) and
+   `CreateOidcProvider` (`true` only if this is the first stack creating the
+   GitHub OIDC provider in the account; otherwise `false` - see the
+   parameter's description in the template). Leave the rest blank to use
+   the template's own defaults (`ApplicationName`, `EnvironmentName`,
+   `DynamoTableName`, `GitHubOrg`, `GitHubRepo`, `SolutionStackName`).
+5. **Template definition repository:** repository `aws-labs`, branch
+   `main` (the linked repo/branch this stack tracks going forward).
+6. **Deployment file path:** where CloudFormation commits the generated
+   deployment file, e.g. `eb-java-app/deployment-file.yaml`.
+7. **IAM role:** *"Create default role"* - a new role CloudFormation itself
+   uses to read the repo and apply changes (distinct from `InstanceRole`,
+   `ServiceRole`, and `GitHubDeployRole`, which are for the running app and
+   for GitHub Actions - this role is for CloudFormation's own sync engine).
+8. **Enable comment on pull request:** optional - posts a predicted-changes
+   summary on any PR touching the template, before merge.
+9. Acknowledge IAM capability creation (same "CloudFormation might create
+   IAM resources with custom names" acknowledgment as a normal stack
+   create - required because the template names its roles explicitly), then
+   create the stack.
+
+This is a one-time bootstrap action, the same way `git init` is one-time.
+Stack creation itself takes roughly 5-10 minutes - most of that is Elastic
+Beanstalk provisioning the load balancer, auto scaling group, and EC2
+instances underneath the environment.
+
+Because `aws-labs` is a multi-lab monorepo, this sync only reacts to
+changes to the two tracked paths (`eb-java-app/infrastructure.yaml` and the
+deployment file) - pushes touching other labs (`ecr-oidc-lab/`,
+`auto-scaling-lab/`, etc.) never trigger this stack.
+
+### 1.2 Making future infrastructure changes
+
+Never touch the CloudFormation console or CLI to deploy again. To change
+anything about the infrastructure:
+
+- **Change a resource** (add/edit something in the template) -> edit
+  `infrastructure.yaml`, commit, `git push origin main`. CloudFormation
+  detects the change and applies it automatically.
+- **Change a parameter value** (e.g. rotate to a new `SourceBucketName`, or
+  flip `CreateOidcProvider`) -> edit the generated deployment file
+  (`eb-java-app/deployment-file.yaml`) directly in the repo, commit, push.
+  Same automatic apply.
+
+### 1.3 Read the stack outputs
+
+Console: CloudFormation -> your stack -> **Outputs** tab (this is just
+*reading* a value, not deploying anything, so it's fine to check here).
+
+CLI, if you prefer:
 
 ```bash
-aws s3 mb s3://eb-java-app-source-047719661196 --region eu-north-1 --profile admin
-aws s3api put-bucket-versioning \
-  --bucket eb-java-app-source-047719661196 \
-  --versioning-configuration Status=Enabled \
-  --profile admin
-```
-
-### 1.2 Create the EB EC2 instance profile (fresh accounts only)
-
-On a brand-new account the default instance profile does not exist yet
-(it is normally auto-created by the EB console). Create it manually:
-
-```bash
-aws iam create-role \
-  --role-name aws-elasticbeanstalk-ec2-role \
-  --assume-role-policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Principal": { "Service": "ec2.amazonaws.com" },
-      "Action": "sts:AssumeRole"
-    }]
-  }' \
-  --profile admin
-
-aws iam attach-role-policy --role-name aws-elasticbeanstalk-ec2-role \
-  --policy-arn arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier --profile admin
-aws iam attach-role-policy --role-name aws-elasticbeanstalk-ec2-role \
-  --policy-arn arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier --profile admin
-aws iam attach-role-policy --role-name aws-elasticbeanstalk-ec2-role \
-  --policy-arn arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker --profile admin
-
-aws iam create-instance-profile \
-  --instance-profile-name aws-elasticbeanstalk-ec2-role --profile admin
-aws iam add-role-to-instance-profile \
-  --instance-profile-name aws-elasticbeanstalk-ec2-role \
-  --role-name aws-elasticbeanstalk-ec2-role --profile admin
-```
-
-### 1.3 Build the initial source bundle and create the application/environment
-
-The very first deployment also goes through S3 (this is how EB works even
-from the console). Build the jar once and upload it manually to seed the
-environment; the GitHub Actions workflow takes over from then on.
-
-Important: build the zip with a Linux `zip` tool (e.g. WSL), not PowerShell's
-`Compress-Archive`, which writes Windows backslash path separators that the
-Linux EB instance cannot unzip.
-
-```bash
-mvn clean package
-mkdir -p deploy
-cp target/application.jar deploy/
-cp Procfile deploy/
-cp -r .ebextensions deploy/
-(cd deploy && zip -r ../initial.zip .)
-
-aws s3 cp initial.zip \
-  s3://eb-java-app-source-047719661196/eb-java-app/v0-initial.zip --profile admin
-
-aws elasticbeanstalk create-application \
-  --application-name eb-java-app \
-  --description "Java Elastic Beanstalk demo" \
-  --profile admin --region eu-north-1
-
-aws elasticbeanstalk create-application-version \
-  --application-name eb-java-app \
-  --version-label v0-initial \
-  --source-bundle S3Bucket=eb-java-app-source-047719661196,S3Key=eb-java-app/v0-initial.zip \
-  --profile admin --region eu-north-1
-
-aws elasticbeanstalk create-environment \
-  --application-name eb-java-app \
-  --environment-name eb-java-app-prod \
-  --solution-stack-name "64bit Amazon Linux 2023 v4.12.5 running Corretto 17" \
-  --version-label v0-initial \
-  --option-settings \
-      Namespace=aws:autoscaling:launchconfiguration,OptionName=IamInstanceProfile,Value=aws-elasticbeanstalk-ec2-role \
-      Namespace=aws:elasticbeanstalk:environment,OptionName=EnvironmentType,Value=LoadBalanced \
+aws cloudformation describe-stacks \
+  --stack-name eb-java-app \
+  --query "Stacks[0].Outputs" \
   --profile admin --region eu-north-1
 ```
 
-> The Corretto 17 solution-stack string changes over time. Confirm the current
-> value for your region with:
-> `aws elasticbeanstalk list-available-solution-stacks --profile admin --region eu-north-1 --query "SolutionStacks[?contains(@, 'Corretto 17')]"`
+You'll use these three outputs (`DeployRoleArn`, `SourceBucket`,
+`EnvironmentName`) to fill in the GitHub repository configuration in the
+next section.
 
-Get the public URL once the environment is green:
+### 1.4 About the "initial deployment"
 
-```bash
-aws elasticbeanstalk describe-environments \
-  --environment-names eb-java-app-prod \
-  --profile admin --region eu-north-1 \
-  --query "Environments[0].CNAME" --output text
-```
+The template creates the Elastic Beanstalk environment without a
+`VersionLabel`, so it boots with AWS's built-in placeholder ("Sample
+Application") - no manual jar build/zip/upload is needed just to stand the
+environment up. The **first real deployment** happens automatically the
+first time you push to `main`: GitHub Actions builds the jar, uploads it to
+the `SourceBucket` the stack created, and calls
+`create-application-version` / `update-environment`, replacing the sample
+app. This still satisfies the lab requirement that the initial deployment
+"must use a source bundle stored in Amazon S3 and be deployed via Elastic
+Beanstalk (not directly from GitHub)" - CloudFormation prepares the
+destination and permissions; the GitHub Actions workflow performs the
+actual first deploy through S3, same as every deploy after it.
 
-### 1.4 Create the DynamoDB table (external service integration)
-
-```bash
-aws dynamodb create-table \
-  --table-name eb-app-heartbeat \
-  --attribute-definitions AttributeName=id,AttributeType=S \
-  --key-schema AttributeName=id,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --profile admin --region eu-north-1
-```
-
-Grant the EB EC2 instance role permission to use it:
-
-```bash
-aws iam put-role-policy \
-  --role-name aws-elasticbeanstalk-ec2-role \
-  --policy-name eb-app-dynamodb-access \
-  --policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Action": ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:DescribeTable"],
-      "Resource": "arn:aws:dynamodb:eu-north-1:047719661196:table/eb-app-heartbeat"
-    }]
-  }' \
-  --profile admin
-```
-
-Set the table name and region as Elastic Beanstalk environment variables
-(no code change required - the app reads these at runtime). The env var name
-must be exactly `DYNAMODB_TABLE_NAME`:
-
-```bash
-aws elasticbeanstalk update-environment \
-  --environment-name eb-java-app-prod \
-  --option-settings \
-    Namespace=aws:elasticbeanstalk:application:environment,OptionName=DYNAMODB_TABLE_NAME,Value=eb-app-heartbeat \
-    Namespace=aws:elasticbeanstalk:application:environment,OptionName=AWS_REGION,Value=eu-north-1 \
-  --profile admin --region eu-north-1
-```
-
-### 1.5 Create the IAM role GitHub Actions assumes (OIDC - no static keys)
-
-Register GitHub as an OIDC identity provider (one-time per account):
-
-```bash
-aws iam create-open-id-connect-provider \
-  --url https://token.actions.githubusercontent.com \
-  --client-id-list sts.amazonaws.com \
-  --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1 \
-  --profile admin
-```
-
-Create the role with a trust policy scoped to this repo. The `sub` claim uses
-the repository identifier `1MuhireDavid/aws-labs` - not the browser URL, and
-GitHub usernames are case-sensitive:
-
-```bash
-cat > trust-policy.json << 'JSON'
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Principal": { "Federated": "arn:aws:iam::047719661196:oidc-provider/token.actions.githubusercontent.com" },
-    "Action": "sts:AssumeRoleWithWebIdentity",
-    "Condition": {
-      "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
-      "StringLike": { "token.actions.githubusercontent.com:sub": "repo:1MuhireDavid/aws-labs:ref:refs/heads/main" }
-    }
-  }]
-}
-JSON
-
-aws iam create-role \
-  --role-name github-actions-eb-deploy \
-  --assume-role-policy-document file://trust-policy.json \
-  --profile admin
-```
-
-Attach the AWS-managed `AdministratorAccess-AWSElasticBeanstalk` policy
-(the older `AWSElasticBeanstalkFullAccess` policy this doc previously
-referenced was deprecated by AWS and is no longer attachable). An earlier
-version of this doc hand-rolled a least-privilege policy scoped to the two S3
-buckets and a short list of Describe calls, but EB's deploy pipeline drives a
-CloudFormation stack update under the hood that touches a much wider (and
-not fully documented) set of S3/CloudFormation/EC2/Auto Scaling actions.
-Chasing each `AccessDenied` one deploy at a time proved unreliable, so this
-role now uses the managed policy instead:
-
-```bash
-aws iam attach-role-policy \
-  --role-name github-actions-eb-deploy \
-  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk \
-  --profile admin
-```
-
-This managed policy's S3 grants only match buckets named `elasticbeanstalk-*`
-(the auto-created storage bucket) - it does **not** cover the custom-named
-source bundle bucket (`eb-java-app-source-047719661196`) that the workflow
-uploads to directly with `aws s3 cp`. Keep a small inline policy just for
-that bucket:
-
-```bash
-cat > deploy-policy.json << 'JSON'
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "SourceBundleBucketAccess",
-      "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectAcl", "s3:GetBucketLocation", "s3:ListBucket"],
-      "Resource": [
-        "arn:aws:s3:::eb-java-app-source-047719661196",
-        "arn:aws:s3:::eb-java-app-source-047719661196/*"
-      ]
-    }
-  ]
-}
-JSON
-
-aws iam put-role-policy \
-  --role-name github-actions-eb-deploy \
-  --policy-name eb-deploy-source-bucket \
-  --policy-document file://deploy-policy.json \
-  --profile admin
-```
-
-Because the source bundle bucket has a custom name (not the auto-created
-`elasticbeanstalk-*` name), the EB service also needs a bucket policy allowing
-it to read source bundles:
-
-```bash
-cat > bucket-policy.json << 'JSON'
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Sid": "AllowElasticBeanstalkServiceAccess",
-    "Effect": "Allow",
-    "Principal": { "Service": "elasticbeanstalk.amazonaws.com" },
-    "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:ListBucket"],
-    "Resource": [
-      "arn:aws:s3:::eb-java-app-source-047719661196",
-      "arn:aws:s3:::eb-java-app-source-047719661196/*"
-    ],
-    "Condition": { "StringEquals": { "aws:SourceAccount": "047719661196" } }
-  }]
-}
-JSON
-
-aws s3api put-bucket-policy \
-  --bucket eb-java-app-source-047719661196 \
-  --policy file://bucket-policy.json --profile admin
-```
-
-Get the role ARN for the GitHub secret in the next section:
-
-```bash
-aws iam get-role --role-name github-actions-eb-deploy \
-  --profile admin --query "Role.Arn" --output text
-```
+The DynamoDB table (`HeartbeatTable`), the EC2 instance role's permission
+to read/write it, and the `DYNAMODB_TABLE_NAME` / `AWS_REGION` environment
+variables on the environment are all created by the stack too - nothing
+further to configure for the external-service integration.
 
 ---
 
 ## 2. GitHub repository configuration
 
-In the repository **Settings -> Secrets and variables -> Actions**, at the
-**repository** level (not environment-scoped), split as follows.
+Using the stack outputs from step 1.3 (and the parameter values you chose
+when deploying), fill these in under repository **Settings -> Secrets and
+variables -> Actions**, at the **repository** level (not
+environment-scoped). Example values below assume the defaults in
+`infrastructure.yaml` and account `047719661196` - substitute your own.
 
 **Secrets tab:**
 
-| Name | Value |
-|---|---|
-| `AWS_DEPLOY_ROLE_ARN` | `arn:aws:iam::047719661196:role/github-actions-eb-deploy` |
+| Name | Value | Source |
+|---|---|---|
+| `AWS_DEPLOY_ROLE_ARN` | `arn:aws:iam::047719661196:role/github-actions-eb-deploy-eb-java-app-prod` | Stack output `DeployRoleArn` |
 
 **Variables tab:**
 
-| Name | Value |
-|---|---|
-| `AWS_REGION` | `eu-north-1` |
-| `EB_SOURCE_BUCKET` | `eb-java-app-source-047719661196` |
-| `EB_APPLICATION_NAME` | `eb-java-app` |
-| `EB_ENVIRONMENT_NAME` | `eb-java-app-prod` |
+| Name | Value | Source |
+|---|---|---|
+| `AWS_REGION` | `eu-north-1` | The `--region` you deployed the stack to |
+| `EB_SOURCE_BUCKET` | `eb-java-app-source-047719661196` | Stack output `SourceBucket` |
+| `EB_APPLICATION_NAME` | `eb-java-app` | The `ApplicationName` parameter you used |
+| `EB_ENVIRONMENT_NAME` | `eb-java-app-prod` | Stack output `EnvironmentName` |
 
 The role ARN is a secret (read via `secrets.`); the other four are plain
 variables (read via `vars.`). No AWS access keys are ever stored - the
@@ -396,3 +239,30 @@ aws elasticbeanstalk update-environment \
   --version-label <previous-version-label> \
   --profile admin --region eu-north-1
 ```
+
+## 6. Tear down
+
+Git sync automates *deploys* (push a change, it applies) - it does not
+automate *deletion*. Tearing the stack down is a deliberate, one-off action
+you still take through the console or CLI, same as unplugging any other
+running system:
+
+```bash
+aws cloudformation delete-stack --stack-name eb-java-app \
+  --profile admin --region eu-north-1
+```
+
+Two things CloudFormation can't do for you here:
+
+- **Empty the source bucket first.** `SourceBucket` has versioning enabled,
+  so it accumulates object versions over time; CloudFormation refuses to
+  delete a non-empty bucket and the stack deletion will fail/roll back on
+  that resource. Empty it before deleting the stack:
+  `aws s3 rm s3://<your-source-bucket-name> --recursive --profile admin`
+  (or, in the console, select the bucket -> **Empty**).
+- **The GitHub OIDC provider is shared.** If you deployed with
+  `CreateOidcProvider=true`, deleting this stack removes the
+  `token.actions.githubusercontent.com` provider too - which will break
+  *any other* stack/role in this account (e.g. `ecr-oidc-lab`) that also
+  trusts it. Only delete this stack with that flag on if you're sure
+  nothing else in the account depends on the provider.

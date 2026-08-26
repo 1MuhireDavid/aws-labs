@@ -143,7 +143,7 @@ Resources:
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: aws-elasticbeanstalk-ec2-role
+      RoleName: !Sub "aws-elasticbeanstalk-ec2-role-${EnvironmentName}"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -195,7 +195,7 @@ Resources:
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: aws-elasticbeanstalk-ec2-role
+      InstanceProfileName: !Sub "aws-elasticbeanstalk-ec2-role-${EnvironmentName}"
       Roles:
         - !Ref InstanceRole
 
@@ -221,7 +221,7 @@ Resources:
   GitHubDeployRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: github-actions-eb-deploy
+      RoleName: !Sub "github-actions-eb-deploy-${EnvironmentName}"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -313,7 +313,7 @@ Resources:
   ServiceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: aws-elasticbeanstalk-service-role
+      RoleName: !Sub "aws-elasticbeanstalk-service-role-${EnvironmentName}"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
