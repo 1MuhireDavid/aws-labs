@@ -1,0 +1,5 @@
+template-file-path: eb-java-app/infrastructure.yaml
+parameters:
+  SourceBucketName: eb-java-app-source-085876626162
+  CreateOidcProvider: 'false'
+tags: {}
