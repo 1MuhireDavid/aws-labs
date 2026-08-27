@@ -234,74 +234,19 @@ Resources:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
                 token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOrg}/${GitHubRepo}:*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk
       Policies:
         - PolicyName: eb-deploy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # Upload/read source bundles in our bucket.
               - Sid: SourceBundleBucket
                 Effect: Allow
                 Action:
                   - s3:PutObject
                   - s3:GetObject
                 Resource: !Sub "arn:aws:s3:::${SourceBucketName}/*"
-              # EB's own runtime storage bucket operations during a deploy.
-              - Sid: EbStorageBucket
-                Effect: Allow
-                Action:
-                  - s3:CreateBucket
-                  - s3:GetBucketLocation
-                  - s3:GetBucketPolicy
-                  - s3:PutBucketPolicy
-                  - s3:ListBucket
-                Resource: !Sub "arn:aws:s3:::elasticbeanstalk-${AWS::Region}-${AWS::AccountId}"
-              - Sid: EbStorageObjects
-                Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:GetObjectAcl
-                  - s3:PutObject
-                  - s3:PutObjectAcl
-                  - s3:DeleteObject
-                Resource: !Sub "arn:aws:s3:::elasticbeanstalk-${AWS::Region}-${AWS::AccountId}/*"
-              # Elastic Beanstalk deploy actions.
-              - Sid: ElasticBeanstalkDeploy
-                Effect: Allow
-                Action:
-                  - elasticbeanstalk:CreateApplicationVersion
-                  - elasticbeanstalk:UpdateEnvironment
-                  - elasticbeanstalk:DescribeEnvironments
-                  - elasticbeanstalk:DescribeApplicationVersions
-                  - elasticbeanstalk:DescribeEvents
-                  - elasticbeanstalk:DescribeConfigurationSettings
-                Resource: "*"
-              # Read-only calls EB performs against supporting services while
-              # rolling out (CloudFormation-driven) a new version.
-              - Sid: EbSupportingReads
-                Effect: Allow
-                Action:
-                  - autoscaling:DescribeAutoScalingGroups
-                  - autoscaling:DescribeScalingActivities
-                  - autoscaling:DescribeLaunchConfigurations
-                  - cloudformation:DescribeStacks
-                  - cloudformation:DescribeStackResource
-                  - cloudformation:DescribeStackResources
-                  - cloudformation:GetTemplate
-                  - cloudformation:UpdateStack
-                  - ec2:DescribeImages
-                  - ec2:DescribeInstances
-                  - ec2:DescribeLaunchTemplates
-                  - ec2:DescribeSecurityGroups
-                  - ec2:DescribeSubnets
-                  - ec2:DescribeVpcs
-                  - ec2:DescribeKeyPairs
-                  - ec2:DescribeAvailabilityZones
-                  - ec2:DescribeAccountAttributes
-                  - elasticloadbalancing:DescribeLoadBalancers
-                  - elasticloadbalancing:DescribeTargetGroups
-                  - elasticloadbalancing:DescribeTargetHealth
-                Resource: "*"
       Tags:
         - Key: Project
           Value: eb-java-app
@@ -358,13 +303,6 @@ Resources:
         - Namespace: aws:elasticbeanstalk:environment
           OptionName: ServiceRole
           Value: !Ref ServiceRole
-        # Managed platform updates - lets EB auto-apply patch/minor platform
-        # version bumps (Corretto/OS patches) during the preferred window,
-        # using the AWSElasticBeanstalkManagedUpdatesCustomerRolePolicy
-        # already attached to ServiceRole. Keeps the environment current
-        # between deploys so the pinned SolutionStackName parameter doesn't
-        # need to be manually re-checked/bumped every time AWS retires the
-        # exact version it's pointing at.
         - Namespace: aws:elasticbeanstalk:managedactions
           OptionName: ManagedActionsEnabled
           Value: "true"
