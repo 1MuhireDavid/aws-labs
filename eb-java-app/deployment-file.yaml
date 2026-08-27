@@ -13,3 +13,4 @@ parameters:
 tags:
   Project: eb-java-app
   ManagedBy: cloudformation-git-sync
+  DeployAttempt: "4"
