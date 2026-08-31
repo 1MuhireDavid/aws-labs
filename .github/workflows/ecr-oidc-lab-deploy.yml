@@ -57,6 +57,7 @@ jobs:
             --tag "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" \
             .
 
+
       # Defense in depth: scan for known CVEs before anything is pushed.
       # The job fails (and nothing is pushed) on a CRITICAL finding,
       # satisfying "pipeline fails securely on error".
