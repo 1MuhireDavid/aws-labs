@@ -299,7 +299,7 @@ Resources:
         SecurityGroupIds:
           - !Ref InstanceSecurityGroup
         MetadataOptions:
-          HttpTokens: required        # Enforce IMDSv2 (best practice)
+          HttpTokens: required        # Enforce IMDSv2 (best practice) defend ssrf attacks
           HttpPutResponseHopLimit: 2
         BlockDeviceMappings:
           - DeviceName: /dev/xvda
@@ -361,15 +361,15 @@ Resources:
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: !Sub ${EnvironmentName}-ALB
-      Scheme: internet-facing
+      Name: !Sub ${EnvironmentName}-ALB 
+      Scheme: internet-facing # provision the ALB with a public IP so it can be accessed from the internet
       Type: application
       IpAddressType: ipv4
       Subnets:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
       SecurityGroups:
-        - !Ref ALBSecurityGroup
+        - !Ref ALBSecurityGroup  #enforce inbound HTTP access on port 80
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-ALB
@@ -392,7 +392,7 @@ Resources:
         - Key: deregistration_delay.timeout_seconds
           Value: "30"
 
-  ALBListener:
+  ALBListener:  #binds the ALB to the target group
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn: !Ref ApplicationLoadBalancer
@@ -436,8 +436,8 @@ Resources:
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
         PredefinedMetricSpecification:
-          PredefinedMetricType: ASGAverageCPUUtilization
-        TargetValue: !Ref CpuTargetValue
+          PredefinedMetricType: ASGAverageCPUUtilization  #monitor the average CPU utilization of EC2 instances in the ASG
+        TargetValue: !Ref CpuTargetValue   # target threshold
         # Grace periods before another scaling action is considered
         DisableScaleIn: false
 

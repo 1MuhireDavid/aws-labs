@@ -222,7 +222,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "github-actions-eb-deploy-${EnvironmentName}"
-      AssumeRolePolicyDocument:
+      AssumeRolePolicyDocument: 
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
