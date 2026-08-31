@@ -100,6 +100,9 @@ the CloudFormation Console's Outputs tab on the bootstrap stack:
 
 ## What happens on push to `main` under this folder
 
+(any change under this folder — including this README — satisfies the
+workflow's path filter and triggers the steps below)
+
 1. `ecs-bluegreen-lab-app-build-and-push.yml` assumes
    `AWS_ECR_PUSH_ROLE_ARN` via **OIDC** — a role that (via the
    `job_workflow_ref` trust condition) only this exact workflow file can
