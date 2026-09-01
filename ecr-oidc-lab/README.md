@@ -47,6 +47,8 @@ automatically.
    already created the GitHub OIDC provider for a previous lab in this same
    AWS account, change `CreateOidcProvider` to `"false"` before continuing.
 
+
+
 2. **AWS Console → CloudFormation → Create stack → With new resources.**
    Choose **"Template is ready"** and **"Sync from Git"**, then Next.
 
