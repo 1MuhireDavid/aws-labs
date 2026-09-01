@@ -22,6 +22,7 @@ public class HomeController {
     private String appVersion;
 
     private final RevisionLogService revisionLog;
+    
 
     public HomeController(RevisionLogService revisionLog) {
         this.revisionLog = revisionLog;
