@@ -53,3 +53,6 @@ public class RevisionLogService {
         return trimmed.length() > MAX_FIELD_LENGTH ? trimmed.substring(0, MAX_FIELD_LENGTH) : trimmed;
     }
 }
+
+
+
