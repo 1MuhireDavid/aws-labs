@@ -48,7 +48,6 @@ automatically.
    AWS account, change `CreateOidcProvider` to `"false"` before continuing.
 
 
-
 2. **AWS Console → CloudFormation → Create stack → With new resources.**
    Choose **"Template is ready"** and **"Sync from Git"**, then Next.
 
