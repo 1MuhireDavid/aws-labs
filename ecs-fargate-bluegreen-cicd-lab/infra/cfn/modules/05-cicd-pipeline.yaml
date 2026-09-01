@@ -55,8 +55,16 @@ Resources:
   # AWS's native CodeConnections mechanism (GitHub App install), separate
   # from the OIDC roles used by GitHub Actions -- see ../README.md
   # for why these are two different, intentional auth mechanisms.
+  #
+  # Logical ID bumped to V2: the original connection was deleted directly
+  # in the console (out-of-band from CloudFormation), leaving the stack's
+  # tracked resource pointing at an ARN that no longer exists ("drift").
+  # CloudFormation won't self-heal that on a normal update -- renaming the
+  # logical ID forces it to CREATE a fresh connection instead of trying
+  # (and failing) to update one that's gone. Needs the same one-click
+  # authorization in Developer Tools > Settings > Connections afterward.
   # ---------------------------------------------------------------------
-  GitHubConnection:
+  GitHubConnectionV2:
     Type: AWS::CodeStarConnections::Connection
     Properties:
       # ConnectionName has a 32-char AWS limit; "${ProjectName}-github-connection"
@@ -166,7 +174,7 @@ Resources:
               - Sid: GitHubConnectionUse
                 Effect: Allow
                 Action: "codestar-connections:UseConnection"
-                Resource: !Ref GitHubConnection
+                Resource: !Ref GitHubConnectionV2
               - Sid: CodeDeployTrigger
                 Effect: Allow
                 Action:
@@ -225,7 +233,7 @@ Resources:
                 Provider: CodeStarSourceConnection
                 Version: "1"
               Configuration:
-                ConnectionArn: !Ref GitHubConnection
+                ConnectionArn: !Ref GitHubConnectionV2
                 FullRepositoryId: !Sub "${GitHubOrg}/${RepoName}"
                 BranchName: !Ref AppRepoBranch
                 # false, deliberately: this is a shared monorepo with many
@@ -307,7 +315,7 @@ Outputs:
   CodeDeployDeploymentGroupName:
     Value: !Ref CodeDeployDeploymentGroup
   GitHubConnectionArn:
-    Value: !Ref GitHubConnection
+    Value: !Ref GitHubConnectionV2
     Description: >-
       PENDING after creation -- complete the handshake once in the AWS
       Console (Developer Tools > Settings > Connections) to authorize the
