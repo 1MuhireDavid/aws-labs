@@ -1,60 +1,51 @@
 # syntax=docker/dockerfile:1
 
 # ---------------------------------------------------------------------------
-# Stage 1: build/install dependencies
-#   - Uses a full-ish alpine image only to install deps, never shipped.
+# Stage 1: build the jar with Maven
+#   - Never shipped; only target/app.jar is copied out of this stage.
 # ---------------------------------------------------------------------------
-FROM node:20-alpine AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /build
 
-WORKDIR /app
+# Copy only the POM first so this (slow) dependency-resolution layer is
+# cached unless pom.xml itself changes.
+COPY pom.xml .
+RUN mvn -B dependency:go-offline
 
-# Copy only manifest files first so this layer is cached unless deps change.
-COPY package*.json ./
-
-# --omit=dev keeps devDependencies out of the artifact entirely; deterministic
-# install via npm ci instead of npm install.
-RUN npm ci --omit=dev
-
-# Copy application source after deps are installed (better layer caching).
-COPY . .
+# Copy application source after deps are resolved (better layer caching).
+COPY src ./src
+RUN mvn -B clean package -DskipTests
 
 # ---------------------------------------------------------------------------
 # Stage 2: minimal runtime image
-#   - Only production node_modules + source are copied in; no build tools,
-#     no package manager caches, no shell history end up in the final image.
+#   - Only the built jar is copied in; no Maven, no source, no build cache.
 # ---------------------------------------------------------------------------
-FROM node:20-alpine AS production
-
-ENV NODE_ENV=production \
-    PORT=3000
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
 # Create a dedicated, unprivileged, non-login user/group instead of running
-# as root (the node:alpine images already ship a "node" user, but we create
-# our own to be explicit and portable across base images).
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# as root.
+RUN addgroup -S app && adduser -S app -G app
 
-COPY --from=build --chown=appuser:appgroup /app/node_modules ./node_modules
-COPY --from=build --chown=appuser:appgroup /app/package*.json ./
-COPY --from=build --chown=appuser:appgroup /app/server.js ./
+COPY --from=build /build/target/app.jar ./app.jar
+RUN chown app:app ./app.jar
 
-RUN rm -rf /usr/local/lib/node_modules/npm \
-           /usr/local/lib/node_modules/corepack \
-           /opt/yarn-v* \
-           /usr/local/bin/npm \
-           /usr/local/bin/npx \
-           /usr/local/bin/corepack \
-           /usr/local/bin/yarn \
-           /usr/local/bin/yarnpkg 
+# The base JRE image ships Alpine's package manager even though nothing here
+# ever needs it at runtime -- drop it to shrink the attack surface, same
+# rationale as stripping npm/npx/corepack from the old Node.js image.
+RUN rm -rf /sbin/apk /etc/apk /lib/apk /usr/share/apk /var/cache/apk
+
 # Drop root privileges for the remainder of the build and at runtime.
-USER appuser
+USER app
 
-EXPOSE 3000
+EXPOSE 8080
 
 # Let the orchestrator / Docker know the container is actually serving traffic.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -qO- http://localhost:3000/health || exit 1
+  CMD wget -qO- http://localhost:8080/health || exit 1
 
-# Exec form: node runs as PID 1, receives signals directly (clean shutdowns).
-CMD ["node", "server.js"]
+# Exec form: java runs as PID 1, receives signals directly (clean shutdowns).
+# -XX:+UseContainerSupport + MaxRAMPercentage keep the JVM's heap sized to
+# the container's actual memory limit instead of the host's.
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

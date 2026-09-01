@@ -1,4 +1,6 @@
 node_modules/
+target/
+*.class
 *.log
 .env
 .env.*

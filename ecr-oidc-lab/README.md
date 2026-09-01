@@ -1,7 +1,7 @@
-# ecr-oidc-lab — Node.js → Docker → Amazon ECR via GitHub Actions OIDC
+# ecr-oidc-lab — Java (Spring Boot) → Docker → Amazon ECR via GitHub Actions OIDC
 
 Part of the [`1MuhireDavid/aws-labs`](https://github.com/1MuhireDavid/aws-labs)
-monorepo. Containerizes a small Node.js/Express app and automatically builds
+monorepo. Containerizes a small Java (Spring Boot) app and automatically builds
 + pushes the image to a private Amazon ECR repository on every push that
 touches this folder, authenticating to AWS with GitHub's native OIDC
 provider — **no AWS access keys stored in GitHub, ever.**
@@ -15,7 +15,7 @@ where other labs share the same repo/branch).
 
 ```
 ecr-oidc-lab/
-  app/                                 Node.js app + Dockerfile + .dockerignore
+  app/                                 Java (Spring Boot/Maven) app + Dockerfile + .dockerignore
   infra/cloudformation/
     ecr-oidc-stack.yaml                The CloudFormation template
     ecr-oidc-stack.deploy.yaml          Git sync deployment file (parameters live here)
@@ -107,8 +107,8 @@ ecr-oidc-lab → Images tab.**
 ```bash
 cd ecr-oidc-lab/app
 docker build -t ecr-oidc-lab:local .
-docker run --rm -p 3000:3000 ecr-oidc-lab:local
-curl http://localhost:3000/health
+docker run --rm -p 8080:8080 ecr-oidc-lab:local
+curl http://localhost:8080/health
 ```
 
 ## Production hardening notes
