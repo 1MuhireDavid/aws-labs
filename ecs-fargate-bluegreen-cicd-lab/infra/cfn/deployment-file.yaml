@@ -11,8 +11,13 @@
 # MONOREPO NOTE: when you turn on Git sync in the console, you'll point it
 # at this file's path within the repo:
 #   ecs-fargate-bluegreen-cicd-lab/infra/cfn/deployment-file.yaml
-# `template-file-path` below is relative to THIS file's own directory
-# (they're siblings), not the repo root, so it does not need to change.
+# `template-file-path` below is resolved by Git sync RELATIVE TO THE REPO
+# ROOT, not relative to this file's own directory -- confirmed the hard way:
+# a relative "./root.yaml" here made Git sync report
+# "Unable to fetch deployment file: Resource not found for request with
+# filepath: root.yaml", and its own auto-generated fallback PR used the full
+# path below. Must be the full path from the repo root, same as every other
+# lab's deployment-file.yaml in this monorepo.
 #
 # Docs: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/git-sync-concepts-terms.html
 #
@@ -22,7 +27,7 @@
 # acknowledgment are both set in the console when configuring Git sync for
 # this stack, not in this file.
 
-template-file-path: ./root.yaml
+template-file-path: ecs-fargate-bluegreen-cicd-lab/infra/cfn/root.yaml
 
 parameters:
   ProjectName: ecs-bluegreen-lab
