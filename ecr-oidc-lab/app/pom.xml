@@ -19,6 +19,13 @@
 
   <properties>
     <java.version>21</java.version>
+    <!-- spring-boot-starter-parent 3.3.4's managed Tomcat (10.1.30) has
+         known CRITICAL CVEs (CVE-2025-24813, CVE-2026-41293, CVE-2026-43512,
+         CVE-2026-43515) that fail the pipeline's Trivy scan. Spring Boot's
+         BOM reads this exact property to version its embedded Tomcat, so
+         overriding it here patches the CVEs without needing a full Spring
+         Boot upgrade. 10.1.55 is Apache's fixed release for all four. -->
+    <tomcat.version>10.1.55</tomcat.version>
   </properties>
 
   <dependencies>
