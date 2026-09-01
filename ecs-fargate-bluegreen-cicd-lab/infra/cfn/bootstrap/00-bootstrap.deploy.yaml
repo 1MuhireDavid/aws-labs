@@ -15,12 +15,11 @@ parameters:
   InfraPackagingWorkflowFile: ecs-bluegreen-lab-infra-package-templates.yml
   AppBuildWorkflowFile: ecs-bluegreen-lab-app-build-and-push.yml
   InfraDeployWorkflowFile: ecs-bluegreen-lab-infra-deploy.yml
-  # CONFIRM THIS before first deploy: "false" if
-  # token.actions.githubusercontent.com already exists in this AWS account
-  # (check IAM -> Identity providers), "true" only if it genuinely does not
-  # exist yet. Getting this wrong either fails stack creation (duplicate
-  # provider) or leaves other labs' OIDC roles without a provider to trust.
-  CreateOidcProvider: "true"
+  # Confirmed in the AWS console: token.actions.githubusercontent.com
+  # already exists in this account (13+ days old, predates this stack --
+  # created by another lab, e.g. ecr-oidc-lab). "false" so this stack
+  # doesn't try to create a duplicate.
+  CreateOidcProvider: "false"
 
 tags:
   Project: ecs-bluegreen-lab
