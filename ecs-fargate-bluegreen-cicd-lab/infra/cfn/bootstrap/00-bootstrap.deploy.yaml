@@ -1,0 +1,28 @@
+# CloudFormation Git sync "deployment file" for the BOOTSTRAP stack.
+#
+# `template-file-path` is resolved by Git sync RELATIVE TO THE REPO ROOT,
+# not relative to this file's own directory (confirmed the hard way while
+# setting up the main ecs-bluegreen-lab stack -- see git history on
+# ../deployment-file.yaml). Must be the full path from the repo root.
+
+template-file-path: ecs-fargate-bluegreen-cicd-lab/infra/cfn/bootstrap/00-bootstrap.yaml
+
+parameters:
+  ProjectName: ecs-bluegreen-lab
+  GitHubOrg: 1MuhireDavid
+  RepoName: aws-labs
+  AllowedGitRef: refs/heads/main
+  InfraPackagingWorkflowFile: ecs-bluegreen-lab-infra-package-templates.yml
+  AppBuildWorkflowFile: ecs-bluegreen-lab-app-build-and-push.yml
+  InfraDeployWorkflowFile: ecs-bluegreen-lab-infra-deploy.yml
+  # CONFIRM THIS before first deploy: "false" if
+  # token.actions.githubusercontent.com already exists in this AWS account
+  # (check IAM -> Identity providers), "true" only if it genuinely does not
+  # exist yet. Getting this wrong either fails stack creation (duplicate
+  # provider) or leaves other labs' OIDC roles without a provider to trust.
+  CreateOidcProvider: "true"
+
+tags:
+  Project: ecs-bluegreen-lab
+  ManagedBy: CloudFormation-GitSync
+  Environment: lab
