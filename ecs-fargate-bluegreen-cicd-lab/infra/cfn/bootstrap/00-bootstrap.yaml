@@ -114,17 +114,22 @@ Resources:
               Bool:
                 "aws:SecureTransport": "false"
           # root.yaml's nested AWS::CloudFormation::Stack resources fetch
-          # their child templates via TemplateURL, which CloudFormation
-          # itself resolves by reading the object from S3 -- not via the
-          # Git sync execution role's own IAM permissions. InfraPackagingRole
-          # (above) only lets GitHub Actions UPLOAD templates; without this
-          # statement, CloudFormation gets "S3 error: Access Denied" trying
-          # to READ them back at deploy time, since the bucket is otherwise
-          # fully private (PublicAccessBlockConfiguration blocks all four).
-          - Sid: AllowCloudFormationReadTemplates
+          # their child templates via TemplateURL. For NESTED stacks (unlike
+          # the root template), CloudFormation performs that S3 GetObject
+          # using the credentials of the stack's own execution role (here,
+          # the Git sync stack execution role) -- not a blanket
+          # cloudformation.amazonaws.com service identity. A first attempt
+          # granting only the service principal still failed with "S3
+          # error: Access Denied", confirming this. InfraPackagingRole
+          # (above) only lets GitHub Actions UPLOAD templates. Since the
+          # exact auto-generated Git sync execution role name isn't known
+          # to this template, grant read to any IAM principal in THIS
+          # account instead (still same-account only, not public --
+          # PublicAccessBlockConfiguration continues to block that).
+          - Sid: AllowAccountPrincipalsReadTemplates
             Effect: Allow
             Principal:
-              Service: cloudformation.amazonaws.com
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
             Action: "s3:GetObject"
             Resource: !Sub "${TemplatesBucket.Arn}/templates/*"
 
