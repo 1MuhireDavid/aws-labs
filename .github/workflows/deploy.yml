@@ -6,7 +6,6 @@ on:
     paths:
       - "eb-java-app/**"          # this repo holds multiple labs; only build on changes here
       - ".github/workflows/deploy.yml"
-  workflow_dispatch: {}
 
 # Only one deployment in flight at a time; a newer push supersedes an
 # in-progress one instead of racing it.

@@ -16,7 +16,6 @@ on:
     paths:
       - "ecs-fargate-bluegreen-cicd-lab/infra/cfn/modules/**"
       - "ecs-fargate-bluegreen-cicd-lab/infra/cfn/root.yaml"
-  workflow_dispatch: {}   # manual re-run, e.g. first-time packaging before any modules/** change
 
 permissions:
   id-token: write   # required for OIDC -> AWS
