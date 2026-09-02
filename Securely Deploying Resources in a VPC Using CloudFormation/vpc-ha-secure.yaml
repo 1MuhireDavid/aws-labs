@@ -106,7 +106,6 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnetACidr
       AvailabilityZone: !Select [0, !GetAZs ""]
-      MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-private-a"
@@ -117,7 +116,6 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnetBCidr
       AvailabilityZone: !Select [1, !GetAZs ""]
-      MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-private-b"
