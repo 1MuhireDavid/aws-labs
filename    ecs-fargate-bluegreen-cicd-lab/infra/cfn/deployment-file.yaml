@@ -1,3 +1,0 @@
-template-file-path: ecs-fargate-bluegreen-cicd-lab/infra/cfn/root.yaml
-parameters: {}
-tags: {}

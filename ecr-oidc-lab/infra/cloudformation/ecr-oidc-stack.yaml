@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Least-privilege GitHub Actions OIDC role plus a private, scanned,
-  immutable-tag Amazon ECR repository whose resource policy only allows
+  mutable-tag Amazon ECR repository whose resource policy only allows
   push/pull from that one role. Written for a monorepo (one GitHub repo
   hosting several labs) — the trust policy is scoped down to one exact
   workflow file, not just the repo/branch, and the role/repo names are
