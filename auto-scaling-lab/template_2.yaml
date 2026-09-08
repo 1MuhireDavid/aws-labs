@@ -39,7 +39,10 @@ Parameters:
   InstanceType:
     Type: String
     Default: t3.micro
-    AllowedValues: [t3.micro, t3.small, t3.medium]
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
     Description: EC2 instance type for the web tier.
 
   LatestAmiId:
@@ -99,7 +102,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [0, !GetAZs ""]
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ""
       CidrBlock: !Ref PublicSubnet1CIDR
       MapPublicIpOnLaunch: true
       Tags:
@@ -110,7 +115,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [1, !GetAZs ""]
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ""
       CidrBlock: !Ref PublicSubnet2CIDR
       MapPublicIpOnLaunch: true
       Tags:
@@ -121,7 +128,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [0, !GetAZs ""]
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ""
       CidrBlock: !Ref PrivateSubnet1CIDR
       Tags:
         - Key: Name
@@ -131,7 +140,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [1, !GetAZs ""]
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ""
       CidrBlock: !Ref PrivateSubnet2CIDR
       Tags:
         - Key: Name
@@ -232,9 +243,6 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-ALB-SG
@@ -249,9 +257,6 @@ Resources:
           FromPort: 80
           ToPort: 80
           SourceSecurityGroupId: !Ref ALBSecurityGroup
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-Instance-SG
@@ -462,5 +467,8 @@ Outputs:
 
   PrivateSubnets:
     Description: Private subnet IDs hosting the EC2 instances
-    Value: !Join [", ", [!Ref PrivateSubnet1, !Ref PrivateSubnet2]]
+    Value: !Join
+      - ", "
+      - - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
 

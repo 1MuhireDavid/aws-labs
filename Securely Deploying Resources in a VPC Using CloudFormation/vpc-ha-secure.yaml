@@ -41,7 +41,10 @@ Parameters:
   InstanceType:
     Type: String
     Default: t3.micro
-    AllowedValues: [t3.micro, t3.small, t3.medium]
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
 
   LatestAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
@@ -83,7 +86,9 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnetACidr
-      AvailabilityZone: !Select [0, !GetAZs ""]
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ""
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
@@ -94,7 +99,9 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnetBCidr
-      AvailabilityZone: !Select [1, !GetAZs ""]
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ""
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
@@ -256,10 +263,6 @@ Resources:
           ToPort: -1
           CidrIp: 0.0.0.0/0
           Description: Ping from within the VPC (validation only)
-      SecurityGroupEgress:
-        - IpProtocol: "-1"
-          CidrIp: 0.0.0.0/0
-          Description: Allow all outbound
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-public-web-sg"
@@ -280,10 +283,6 @@ Resources:
           ToPort: -1
           CidrIp: !Ref VpcCidr
           Description: Ping from within the VPC (validation only)
-      SecurityGroupEgress:
-        - IpProtocol: "-1"
-          CidrIp: 0.0.0.0/0
-          Description: Allow all outbound (egress to NAT Gateway for updates/tests)
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-private-app-sg"
