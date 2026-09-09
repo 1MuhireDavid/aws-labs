@@ -15,7 +15,6 @@ public class HomeController {
                 "message", "Hello from a securely containerized Java (Spring Boot) app!",
                 "hostname", resolveHostname());
     }
-
     // Used by the Docker HEALTHCHECK instruction and by container orchestrators.
     @GetMapping("/health")
     public Map<String, String> health() {
