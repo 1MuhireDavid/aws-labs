@@ -2,7 +2,8 @@ name: Build and Deploy to Elastic Beanstalk
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - "main"
     paths:
       - "eb-java-app/**"          # this repo holds multiple labs; only build on changes here
       - ".github/workflows/deploy.yml"

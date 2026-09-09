@@ -54,7 +54,9 @@ Parameters:
 
   CreateOidcProvider:
     Type: String
-    AllowedValues: [ "true", "false" ]
+    AllowedValues:
+      - "true"
+      - "false"
     Default: "false"
     Description: >
       Set to "true" only if the GitHub OIDC provider does NOT already exist in
@@ -65,7 +67,9 @@ Parameters:
 # Conditions
 # ---------------------------------------------------------------------------
 Conditions:
-  ShouldCreateOidcProvider: !Equals [ !Ref CreateOidcProvider, "true" ]
+  ShouldCreateOidcProvider: !Equals
+    - !Ref CreateOidcProvider
+    - "true"
 
 # ---------------------------------------------------------------------------
 # Resources

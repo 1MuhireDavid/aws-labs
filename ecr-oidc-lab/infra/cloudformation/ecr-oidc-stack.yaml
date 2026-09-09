@@ -38,7 +38,9 @@ Parameters:
       own roles from their own copies of this template.
   CreateOidcProvider:
     Type: String
-    AllowedValues: ["true", "false"]
+    AllowedValues:
+      - "true"
+      - "false"
     Default: "true"
     Description: >
       Set to "false" if token.actions.githubusercontent.com is already
@@ -47,7 +49,9 @@ Parameters:
       in this same account already created it, use "false" here).
 
 Conditions:
-  ShouldCreateOidcProvider: !Equals [!Ref CreateOidcProvider, "true"]
+  ShouldCreateOidcProvider: !Equals
+    - !Ref CreateOidcProvider
+    - "true"
 
 Resources:
 
@@ -87,18 +91,24 @@ Resources:
                   "countUnit": "days",
                   "countNumber": 7
                 },
-                "action": { "type": "expire" }
+                "action": {
+                  "type": "expire"
+                }
               },
               {
                 "rulePriority": 2,
                 "description": "Keep only the 10 most recent tagged images",
                 "selection": {
                   "tagStatus": "tagged",
-                  "tagPrefixList": ["latest"],
+                  "tagPrefixList": [
+                    "latest"
+                  ],
                   "countType": "imageCountMoreThan",
                   "countNumber": 10
                 },
-                "action": { "type": "expire" }
+                "action": {
+                  "type": "expire"
+                }
               }
             ]
           }
