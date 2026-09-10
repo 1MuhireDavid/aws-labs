@@ -12,7 +12,7 @@ public class HomeController {
     @GetMapping("/")
     public Map<String, String> home() {
         return Map.of(
-                "message", "Welcome from a securely containerized Java (Spring Boot) app!",
+                "message", "Hello from a securely containerized Java (Spring Boot) app!",
                 "hostname", resolveHostname());
     }
     // Used by the Docker HEALTHCHECK instruction and by container orchestrators.
