@@ -3,10 +3,20 @@ name: ecr-oidc-lab - Build and Push Docker Image to ECR
 # This repo (1MuhireDavid/aws-labs) holds many labs. The path filter means
 # this workflow only runs when something under ecr-oidc-lab/ (or the
 # workflow file itself) changes — pushes that touch other labs don't
-# trigger a build/push here. Still fires on every push that does touch this
-# lab, on any branch, per the lab spec.
+# trigger a build/push here.
+#
+# Restricted to main: the IAM trust policy in ecr-oidc-stack.yaml only
+# authorizes AssumeRoleWithWebIdentity for ref:refs/heads/main. Without this
+# filter, any push touching ecr-oidc-lab/** on any branch fires this job --
+# including the aws-sync-main-<hash> branches CloudFormation Git sync opens
+# automatically to update the stack files under infra/cloudformation/. Those
+# runs would always fail at "Configure AWS credentials via OIDC" with
+# "Not authorized to perform sts:AssumeRoleWithWebIdentity" since their ref
+# never matches main.
 on:
   push:
+    branches:
+      - main
     paths:
       - 'ecr-oidc-lab/**'
       - '.github/workflows/ecr-oidc-lab-deploy.yml'

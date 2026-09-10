@@ -113,12 +113,19 @@ curl http://localhost:8080/health
 
 ## Production hardening notes
 
-The lab spec asks the workflow to trigger "on every push," so the trigger
-is unfiltered by branch (any branch fires it) but is filtered by path to
-this lab's folder — necessary in a shared repo. For a real production
-pipeline you'd typically also:
+The workflow trigger is restricted to `branches: [main]` (in addition to
+being path-filtered to this lab's folder) to match the IAM trust policy,
+which only authorizes `AssumeRoleWithWebIdentity` for `ref:refs/heads/main`.
+Without the branch filter, any push touching `ecr-oidc-lab/**` on any
+branch fires the job — including the `aws-sync-main-<hash>` branches
+CloudFormation Git sync opens automatically to update the stack files —
+and those runs always failed at "Configure AWS credentials via OIDC" with
+`Not authorized to perform sts:AssumeRoleWithWebIdentity` since their ref
+never matched `main`.
 
-- Restrict to `branches: [main]` and require PR review to merge
+For a real production pipeline you'd typically also:
+
+- Require PR review to merge into `main`
 - Add a GitHub Environment with required reviewers for the deploy job
 - Rotate/shorten `MaxSessionDuration` on the IAM role if sessions don't
   need the full hour
